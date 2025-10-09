@@ -1,0 +1,15 @@
+{
+  "numero": {"x": 116, "y": 685, "size": 13},
+  "data": {"x": 450, "y": 685, "size": 13},
+  "cliente": {"x": 84, "y": 641, "size": 12},
+  "responsavelObra": {"x": 163, "y": 662, "size": 12}, 
+  "telefoneResponsavel": {"x": 380, "y": 662, "size": 12},
+  "cpf": {"x": 71, "y": 619, "size": 12},
+  "rg": {"x": 355, "y": 619, "size": 12},
+  "enderecoObra": {"x": 129, "y": 574, "size": 12},
+  "telefone": {"x": 383, "y": 641, "size": 12},
+  "arquiteto": {"x": 113, "y": 598, "size": 12},
+  "projeto": {"x": 375, "y": 598, "size": 12},
+  "itemsStart": {"x": 42, "y": 508, "size": 12},
+  "lineHeight": 26
+}
