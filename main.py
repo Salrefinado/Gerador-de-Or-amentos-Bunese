@@ -35,6 +35,7 @@ templates = Jinja2Templates(directory=os.path.join(APP_DIR, "templates"))
 
 ITEM_DEFINITIONS = {
     "Tampa Inox": "Tampa para churrasqueira em aço inox 304.",
+    "Tampa Epoxi": "Tampa para churrasqueira em chapa galvanizada com pintura preta EPOXI.",
     "Revestimento Fundo": "Revestimento interno fundo em aço inox 304.",
     "Revestimento Em L": "Revestimento interno fundo e uma lateral em aço inox 304.",
     "Revestimento Em U": "Revestimento interno fundo e duas laterais em aço inox 304.",
@@ -43,9 +44,9 @@ ITEM_DEFINITIONS = {
     "Sistema de Elevar Manual Arg e 3/16": "Sistema de elevar grelhas comando MANUAL na manivela com quadro eixo e guias e 2 grelhas removíveis, uma em vergalhão 3/16 e outra em vergalão 1/8. Material aço inox 304.",
     "Sistema de Elevar Manual Arg e 1/8": "Sistema de elevar grelhas comando MANUAL na manivela com quadro eixo e guias e 2 grelhas removíveis, uma em vergalhão 3/16 e outra em vergalão 1/8. Material aço inox 304.",
     "Sistema de Elevar Motor 2 3/16": "Sistema de elevar grelhas comando elétrico com quadro eixo e guias e 2 grelhas removíveis, em vergalhão 3/16. Material aço inox 304.",
-    "Sistema de Elevar Motor 1/8 e 3/16": "Sistema de elevar grelhas ccomando elétrico com quadro eixo e guias e 2 grelhas removíveis, uma em vergalhão 3/16 e outra em vergalão 1/8. Material aço inox 304.",
-    "Sistema de Elevar Motor Arg e 3/16": "Sistema de elevar grelhas comando elétrico com quadro eixo e guias e 2 grelhas removíveis, uma em vergalhão 3/16 e outra em vergalão 1/8. Material aço inox 304.",
-    "Sistema de Elevar Motor Arg e 1/8": "Sistema de elevar grelhas comando elétrico com quadro eixo e guias e 2 grelhas removíveis, uma em vergalhão 3/16 e outra em vergalão 1/8. Material aço inox 304.",
+    "Sistema de Elevar Motor 1/8 e 3/16": "Sistema de elevar grelhas ccomando elétrico com quadro eixo e guias e 2 grelhas removíveis, uma em vergalhão 3/16 e outra em vergalhão 1/8. Material aço inox 304.",
+    "Sistema de Elevar Motor Arg e 3/16": "Sistema de elevar grelhas comando elétrico com quadro eixo e guias e 2 grelhas removíveis, uma em vergalhão 3/16 e outra em vergalhão 1/8. Material aço inox 304.",
+    "Sistema de Elevar Motor Arg e 1/8": "Sistema de elevar grelhas comando elétrico com quadro eixo e guias e 2 grelhas removíveis, uma em vergalhão 3/16 e outra em vergalhão 1/8. Material aço inox 304.",
     "Giratório 1L 4E": "Sistema giratório de espetos com 1 linha de 4 espetos. Material aço inox 304.",
     "Giratório 1L 5E": "Sistema giratório de espetos com 1 linha de 5 espetos. Material aço inox 304.",
     "Giratório 2L 5E": "Sistema giratório de espetos com 2 linhas de 5 espetos. Material aço inox 304.",
@@ -68,6 +69,15 @@ ITEM_DEFINITIONS = {
     "Balanço 3": "Regulagens de espetos em balanço 3 estágios. Material aço inox 304.",
     "Balanço 4": "Regulagens de espetos em balanço 4 estágios. Material aço inox 304.",
     "Kit 6 Espetos": "Jogo de espetos 6 unidades sob medida com cabos em inox.",
+    "Regulagem Comum 2": "Regulagem de espetos frente e fundo com 2 estágios. Material aço inox 304.",
+    "Regulagem Comum 3": "Regulagem de espetos frente e fundo com 3 estágios. Material aço inox 304.",
+    "Regulagem Comum 4": "Regulagem de espetos frente e fundo com 4 estágios. Material aço inox 304.",
+    "Regulagem Comum 5": "Regulagem de espetos frente e fundo com 5 estágios. Material aço inox 304.",
+    "Regulagem Comum 3": "Regulagem de espetos frente e fundo com 3 estágios. Material aço inox 304.",
+    "Gavetão Inox": "Gavetão inferior a churrasqueira com corrediças e rodízios. Material: chapa galvanizada interno, e frontão em aço inox 304.",
+    "Moldura Área de fogo": "Moldura área de fogo em aço inox 304. Material: aço inox 304.",
+    "Grelha de descanso": "Grelha de descanso",
+    "KAM800 2 Faces": "Lareira Kaminofen Modelo KAM800 DUPLA FACE com potência de 380m³. Material: Aço carbono 3mm com pintura preto alta temperatura, vidro cerâmico ShotRobax cordas de vedação do vidro e portas são importados.",
 }
 DEFAULT_POSITIONS = {
     "numero": {"x": 450, "y": 760, "size": 10}, "data": {"x": 480, "y": 760, "size": 10},
@@ -292,4 +302,5 @@ async def generate_pdf(
         out_bytes, 
         media_type="application/pdf", 
         headers={"Content-Disposition": f"inline; filename=\"{filename}\""}
+
     )
