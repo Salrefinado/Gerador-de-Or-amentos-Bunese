@@ -10,6 +10,8 @@ from PyPDF2 import PdfReader, PdfWriter
 from datetime import date, datetime
 import locale
 from html.parser import HTMLParser
+from PIL import Image
+
 
 # --- Bloco de configuração inicial ---
 try:
@@ -26,8 +28,11 @@ TEMPLATE_PATH_DEFAULT = os.path.join(APP_DIR, "Orçamento 2.0.pdf")
 POSITIONS_FILE = os.path.join(APP_DIR, "positions.json")
 TEMPLATE_UPLOAD_PATH = os.path.join(APP_DIR, "uploaded_template.pdf")
 STATIC_DIR = os.path.join(APP_DIR, "static")
+REFERENCIA_DIR = os.path.join(STATIC_DIR, "Referencia")
 
-os.makedirs(STATIC_DIR, exist_ok=True) 
+
+os.makedirs(STATIC_DIR, exist_ok=True)
+os.makedirs(REFERENCIA_DIR, exist_ok=True)
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
@@ -81,11 +86,11 @@ ITEM_DEFINITIONS = {
 }
 DEFAULT_POSITIONS = {
     "numero": {"x": 450, "y": 760, "size": 10}, "data": {"x": 480, "y": 760, "size": 10},
-    "responsavelObra": {"x": 60, "y": 740, "size": 10}, "telefoneResponsavel": {"x": 220, "y": 740, "size": 10}, 
-    "cliente": {"x": 60, "y": 720, "size": 10}, "telefone": {"x": 220, "y": 720, "size": 10}, 
-    "cpf": {"x": 220, "y": 700, "size": 10}, "rg": {"x": 60, "y": 700, "size": 10}, 
-    "arquiteto": {"x": 60, "y": 680, "size": 10}, "projeto": {"x": 220, "y": 680, "size": 10}, 
-    "enderecoObra": {"x": 60, "y": 660, "size": 10}, 
+    "responsavelObra": {"x": 60, "y": 740, "size": 10}, "telefoneResponsavel": {"x": 220, "y": 740, "size": 10},
+    "cliente": {"x": 60, "y": 720, "size": 10}, "telefone": {"x": 220, "y": 720, "size": 10},
+    "cpf": {"x": 220, "y": 700, "size": 10}, "rg": {"x": 60, "y": 700, "size": 10},
+    "arquiteto": {"x": 60, "y": 680, "size": 10}, "projeto": {"x": 220, "y": 680, "size": 10},
+    "enderecoObra": {"x": 60, "y": 660, "size": 10},
     "itemsStart": {"x": 42, "y": 527, "size": 13}, "lineHeight": 25
 }
 
@@ -111,10 +116,10 @@ class PDFHTMLParser(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         new_style = self.style_stack[-1].copy()
-        
+
         if tag in ['b', 'strong']:
             new_style['bold'] = True
-            
+
         attrs_dict = dict(attrs)
         if 'style' in attrs_dict:
             style_str = attrs_dict['style'].replace(' ', '').lower()
@@ -122,7 +127,7 @@ class PDFHTMLParser(HTMLParser):
                 new_style['bold'] = True
             if 'background-color:yellow' in style_str:
                 new_style['highlight'] = True
-                
+
         self.style_stack.append(new_style)
 
     def handle_endtag(self, tag):
@@ -133,7 +138,7 @@ class PDFHTMLParser(HTMLParser):
         current_style = self.style_stack[-1]
         font_name = "Helvetica-Bold" if self.is_etapa or current_style['bold'] else "Helvetica"
         self.c.setFont(font_name, self.size)
-        
+
         parts = re.split('(\\s+)', data)
         for part in parts:
             if not part: continue
@@ -149,7 +154,7 @@ class PDFHTMLParser(HTMLParser):
                 self.c.setFillColor(yellow)
                 self.c.rect(self.x, self.y - 2, part_width, self.size, stroke=0, fill=1)
                 self.c.setFillColorRGB(0, 0, 0)
-                
+
             self.c.drawString(self.x, self.y, part)
             self.x += part_width
 
@@ -176,8 +181,8 @@ def draw_wrapped_text(canvas, text, x, y, size, max_width):
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     return templates.TemplateResponse("index.html", {
-        "request": request, "positions": load_positions(), 
-        "today": date.today().isoformat(), "template_exists": get_template_path() is not None, 
+        "request": request, "positions": load_positions(),
+        "today": date.today().isoformat(), "template_exists": get_template_path() is not None,
         "item_definitions": ITEM_DEFINITIONS
     })
 
@@ -190,6 +195,17 @@ def get_template_path():
 async def upload_template(file: UploadFile = File(...)):
     with open(TEMPLATE_UPLOAD_PATH, "wb") as f: f.write(await file.read())
     return RedirectResponse(url="/", status_code=303)
+
+@app.post("/upload-image")
+async def upload_image(file: UploadFile = File(...)):
+    # Garante que o nome do arquivo seja seguro
+    clean_filename = "".join(c for c in file.filename if c.isalnum() or c in (' ', '.', '_', '-')).strip()
+    file_path = os.path.join(REFERENCIA_DIR, clean_filename)
+    
+    with open(file_path, "wb") as buffer:
+        buffer.write(await file.read())
+    # Retorna o caminho relativo para ser usado no frontend
+    return {"filePath": f"/static/Referencia/{clean_filename}"}
 
 @app.post("/save-positions")
 async def api_save_positions(request: Request):
@@ -207,33 +223,33 @@ async def generate_pdf(
 ):
     template_path = get_template_path()
     if not template_path: return {"error": "Nenhum template disponível."}
-    
+
     positions = load_positions()
-    
-    data_formatada_pdf = data 
+
+    data_formatada_pdf = data
     try: data_formatada_pdf = datetime.strptime(data, '%Y-%m-%d').date().strftime("%d de %B de %Y").replace(" de 0", " de ")
     except ValueError: pass
 
     def clean(s): return "".join(c for c in s.strip().replace("/", "_").replace("\\", "_") if c.isalnum() or c in (' ', '_', '.'))
-    
+
     prefixo_projeto = f"{clean(projeto)} " if clean(projeto) and clean(projeto).upper() not in ("N/A", "NA", "NÃO SE APLICA") else ""
     filename = f"Orçamento {clean(numero)} {prefixo_projeto}cliente {clean(cliente)}.pdf"
-    
+
     packet = io.BytesIO()
     try:
         tpl_reader = PdfReader(template_path)
         page_width, page_height = float(tpl_reader.pages[0].mediabox.width), float(tpl_reader.pages[0].mediabox.height)
     except Exception: page_width, page_height = letter
-    
+
     c = canvas.Canvas(packet, pagesize=(page_width, page_height))
-    
+
     def draw_text_at(key, text):
         if not text: return
         p = positions.get(key)
         if not p: return
         c.setFont("Helvetica", p.get("size", 10))
         c.drawString(p.get("x", 50), p.get("y", 750), str(text)[:200])
-        
+
     numero_pos = positions.get("numero")
     if numero_pos and numero:
         c.setFont("Helvetica-Bold", numero_pos.get("size", 10))
@@ -255,19 +271,65 @@ async def generate_pdf(
     y_items = positions.get("itemsStart", {}).get("y", 560)
     line_h = positions.get("lineHeight", 25)
     size = positions.get("itemsStart", {}).get("size", 13)
-    
+
     y_cursor, numbered_item_index = y_items, 0
-    
+
     for item_line in items_list:
         is_etapa = item_line.startswith("@@ETAPA_START@@")
-        
-        # Separa a descrição do custo, se houver
+        is_image = item_line.startswith("@@IMAGE_START@@")
+
+        if is_image:
+            # Extrai o caminho da imagem e o título
+            image_data = item_line.replace("@@IMAGE_START@@", "").strip()
+            image_path, title = "", "Foto referência" # Valores padrão
+            if "|" in image_data:
+                image_path, title = image_data.split("|", 1)
+            else:
+                image_path = image_data
+
+            full_image_path = os.path.join(APP_DIR, image_path.lstrip('/'))
+
+            if os.path.exists(full_image_path):
+                try:
+                    # --- Desenho do Título ---
+                    title_size = size - 1 # Um pouco menor que o texto do item
+                    c.setFont("Helvetica-Bold", title_size)
+                    title_width = c.stringWidth(title, "Helvetica-Bold", title_size)
+                    x_title = (page_width - title_width) / 2 # Centraliza o título
+
+                    # Desce o cursor para o título
+                    y_cursor -= (title_size * 1.5)
+                    c.drawString(x_title, y_cursor, title)
+                    y_cursor -= (line_h * 0.5) # Adiciona espaço depois do título
+
+                    # --- Desenho da Imagem ---
+                    img = Image.open(full_image_path)
+                    img_width, img_height = img.size
+                    aspect = img_height / float(img_width)
+                    display_width = page_width * 0.45
+                    display_height = display_width * aspect
+                    
+                    # Desce o cursor para a imagem
+                    y_cursor -= display_height
+                    
+                    # Centraliza a imagem
+                    x_image = (page_width - display_width) / 2
+                    
+                    c.drawImage(full_image_path, x_image, y_cursor, width=display_width, height=display_height, preserveAspectRatio=True)
+                    
+                    # Adiciona um espaçamento final após a imagem
+                    y_cursor -= line_h
+
+                except Exception as e:
+                    print(f"Erro ao adicionar imagem {full_image_path}: {e}")
+            continue # Pula para o próximo item
+
+        # Lógica para itens de texto (existente)
         processed_line = item_line.replace("@@ETAPA_START@@", "").strip()
         parts = processed_line.split('\n', 1)
         html_description = parts[0]
         cost_line = parts[1].strip() if len(parts) > 1 else None
-
-        # Desenha o prefixo (A), B), etc) se não for uma etapa
+        
         start_x, prefix_width = x_items, 0
         if not is_etapa:
             numbered_item_index += 1
@@ -275,47 +337,41 @@ async def generate_pdf(
             c.setFont("Helvetica", size)
             c.drawString(start_x, y_cursor, letter_prefix)
             prefix_width = c.stringWidth(letter_prefix, "Helvetica", size)
-        
-        # Posição inicial do texto (depois do prefixo)
+
         text_x = start_x + prefix_width
-        max_x_items = page_width - x_items - 10 # Margem direita
-        
-        # Desenha a descrição principal (que pode ter HTML)
+        max_x_items = page_width - x_items - 10
+
         parser = PDFHTMLParser(c, text_x, y_cursor, size, line_h, max_x_items, is_etapa=is_etapa)
         parser.feed(html_description)
         
-        # Pega a posição Y final após desenhar a descrição
         y_after_description = parser.y
         
-        # Se houver uma linha de custo, desenha-a logo abaixo
         if cost_line and not is_etapa:
-            y_for_cost = y_after_description - (size * 1.2) # Posição um pouco abaixo
-            c.setFont("Helvetica-Bold", size - 1) # Fonte em negrito
-            c.drawString(text_x + 15, y_for_cost, cost_line) # Desenha com recuo
-            # A posição do cursor para o próximo item começa abaixo do custo
+            y_for_cost = y_after_description - (size * 1.2)
+            c.setFont("Helvetica-Bold", size - 1)
+            c.drawString(text_x + 15, y_for_cost, cost_line)
             y_cursor = y_for_cost - line_h
         else:
-            # Se não houver custo, o próximo item começa abaixo da descrição
             y_cursor = y_after_description - line_h
-        
+
     c.save()
     packet.seek(0)
-    
+
     overlay_reader = PdfReader(packet)
     writer = PdfWriter()
     tpl_reader = PdfReader(template_path)
     tpl_page = tpl_reader.pages[0]
     tpl_page.merge_page(overlay_reader.pages[0])
     writer.add_page(tpl_page)
-    
+
     for i in range(1, len(tpl_reader.pages)): writer.add_page(tpl_reader.pages[i])
-        
+
     out_bytes = io.BytesIO()
     writer.write(out_bytes)
     out_bytes.seek(0)
 
     return StreamingResponse(
-        out_bytes, 
-        media_type="application/pdf", 
+        out_bytes,
+        media_type="application/pdf",
         headers={"Content-Disposition": f"inline; filename=\"{filename}\""}
     )
