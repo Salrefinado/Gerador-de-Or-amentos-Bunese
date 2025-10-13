@@ -34,7 +34,8 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=os.path.join(APP_DIR, "templates"))
 
 ITEM_DEFINITIONS = {
-    "Tampa Inox": "Tampa para churrasqueira em aço inox 304.",
+    "Tampa Inox": "Tampa para churrasqueira em aço inox 304.
+    Custo R$ 8.600,00",
     "Tampa Epoxi": "Tampa para churrasqueira em chapa galvanizada com pintura preta EPOXI.",
     "Revestimento Fundo": "Revestimento interno fundo em aço inox 304.",
     "Revestimento Em L": "Revestimento interno fundo e uma lateral em aço inox 304.",
@@ -304,3 +305,4 @@ async def generate_pdf(
         headers={"Content-Disposition": f"inline; filename=\"{filename}\""}
 
     )
+
