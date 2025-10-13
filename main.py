@@ -41,51 +41,51 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=os.path.join(APP_DIR, "templates"))
 
 ITEM_DEFINITIONS = {
-    "Tampa Inox": "Tampa para churrasqueira em aço inox 304.\n    Custo R$ 8.600,00",
-    "Tampa Epoxi": "Tampa para churrasqueira em chapa galvanizada com pintura preta EPOXI.",
-    "Revestimento Fundo": "Revestimento interno fundo em aço inox 304.",
-    "Revestimento Em L": "Revestimento interno fundo e uma lateral em aço inox 304.",
-    "Revestimento Em U": "Revestimento interno fundo e duas laterais em aço inox 304.",
-    "Sistema de Elevar Manual 2 3/16": "Sistema de elevar grelhas comando MANUAL na manivela com quadro eixo e guias e 2 grelhas removíveis, em vergalhão 3/16. Material aço inox 304.",
-    "Sistema de Elevar Manual 1/8 e 3/16": "Sistema de elevar grelhas comando MANUAL na manivela com quadro eixo e guias e 2 grelhas removíveis, uma em vergalhão 3/16 e outra em vergalão 1/8. Material aço inox 304.",
-    "Sistema de Elevar Manual Arg e 3/16": "Sistema de elevar grelhas comando MANUAL na manivela com quadro eixo e guias e 2 grelhas removíveis, uma em vergalhão 3/16 e outra em vergalão 1/8. Material aço inox 304.",
-    "Sistema de Elevar Manual Arg e 1/8": "Sistema de elevar grelhas comando MANUAL na manivela com quadro eixo e guias e 2 grelhas removíveis, uma em vergalhão 3/16 e outra em vergalão 1/8. Material aço inox 304.",
-    "Sistema de Elevar Motor 2 3/16": "Sistema de elevar grelhas comando elétrico com quadro eixo e guias e 2 grelhas removíveis, em vergalhão 3/16. Material aço inox 304.",
-    "Sistema de Elevar Motor 1/8 e 3/16": "Sistema de elevar grelhas ccomando elétrico com quadro eixo e guias e 2 grelhas removíveis, uma em vergalhão 3/16 e outra em vergalhão 1/8. Material aço inox 304.",
-    "Sistema de Elevar Motor Arg e 3/16": "Sistema de elevar grelhas comando elétrico com quadro eixo e guias e 2 grelhas removíveis, uma em vergalhão 3/16 e outra em vergalhão 1/8. Material aço inox 304.",
-    "Sistema de Elevar Motor Arg e 1/8": "Sistema de elevar grelhas comando elétrico com quadro eixo e guias e 2 grelhas removíveis, uma em vergalhão 3/16 e outra em vergalhão 1/8. Material aço inox 304.",
-    "Giratório 1L 4E": "Sistema giratório de espetos com 1 linha de 4 espetos. Material aço inox 304.",
-    "Giratório 1L 5E": "Sistema giratório de espetos com 1 linha de 5 espetos. Material aço inox 304.",
-    "Giratório 2L 5E": "Sistema giratório de espetos com 2 linhas de 5 espetos. Material aço inox 304.",
-    "Giratório 2L 6E": "Sistema giratório de espetos com 2 linha de 6 espetos. Material aço inox 304.",
-    "Giratório 2L 7E": "Sistema giratório de espetos com 2 linha de 7 espetos. Material aço inox 304.",
-    "Giratório 2L 8E": "Sistema giratório de espetos com 2 linha de 8 espetos. Material aço inox 304.",
-    "Cooktop + Bifeira": "Fogareiro Cooktop Tramontina tripla chama modificado com Bifeira Grill de 4mm em aço inox 304.",
-    "Cooktop": "Fogareiro Cooktop Tramontina tripla chama modificado em aço inox 304.",
-    "Porta Guilhotina Vidro L": "Uma estrutura de aço inox de porta guilhotina, com contrapeso e fechamento com vidro refletivo frontal e uma lateral fixa. Material: Base em aço inox 304 e superior em Metalon galvanizado, vidro Habith Cebrace.",
-    "Porta Guilhotina Vidro U": "Uma estrutura de aço inox de porta guilhotina, com contrapeso e fechamento com vidro refletivo frontal e duas laterais fixas. Material: Base em aço inox 304 e superior em Metalon galvanizado, vidro Habith Cebrace.",
-    "Porta Guilhotina Vidro F": "Uma estrutura de aço inox de porta guilhotina, com contrapeso e fechamento com vidro refletivo frontal. Material: Base em aço inox 304 e superior em Metalon galvanizado, vidro Habith Cebrace.",
-    "Porta Guilhotina Inox F": "Uma estrutura de aço inox de porta guilhotina, com contrapeso e fechamento em INOX. Material: Base em aço inox 304 e superior em Metalon galvanizado.",
-    "Porta Guilhotina Pedra F": "Uma estrutura de aço inox de porta guilhotina, com contrapeso e  fechamento em pedra fornecida pelo cliente. Material: Base em aço inox 304 e superior em Metalon galvanizado.",
-    "Coifa Epoxi": "Coifa interna para churrasqueira abrangendo a área de carvão, com 0 metros de dutos internos. Material:chapa galvanizada com pintura epóxi preta.",
-    "Isolamento Coifa": "Isolamento térmico de coifa com manta de fibra cerâmica.",
-    "Placa cimenticia Porta": "Aplicação de placa cimentícia sob porta guilhotina para fechamento e para receber o revestimento final.",
-    "Revestimento Base": "Revestimento na base inferior da churrasqueira com placa cimentícia e manta de fibra cerâmica. (item recomendável para proteger marcenaria).",
-    "Bifeteira grill": "Chapa bifeteira grill (adicional) para sistema de elevar.",
-    "Balanço 2": "Regulagens de espetos em balanço 2 estágios. Material aço inox 304.",
-    "Balanço 3": "Regulagens de espetos em balanço 3 estágios. Material aço inox 304.",
-    "Balanço 4": "Regulagens de espetos em balanço 4 estágios. Material aço inox 304.",
-    "Kit 6 Espetos": "Jogo de espetos 6 unidades sob medida com cabos em inox.",
-    "Regulagem Comum 2": "Regulagem de espetos frente e fundo com 2 estágios. Material aço inox 304.",
-    "Regulagem Comum 3": "Regulagem de espetos frente e fundo com 3 estágios. Material aço inox 304.",
-    "Regulagem Comum 4": "Regulagem de espetos frente e fundo com 4 estágios. Material aço inox 304.",
-    "Regulagem Comum 5": "Regulagem de espetos frente e fundo com 5 estágios. Material aço inox 304.",
-    "Regulagem Comum 3": "Regulagem de espetos frente e fundo com 3 estágios. Material aço inox 304.",
-    "Gavetão Inox": "Gavetão inferior a churrasqueira com corrediças e rodízios. Material: chapa galvanizada interno, e frontão em aço inox 304.",
-    "Moldura Área de fogo": "Moldura área de fogo em aço inox 304. Material: aço inox 304.",
-    "Grelha de descanso": "Grelha de descanso",
-    "KAM800 2 Faces": "Lareira Kaminofen Modelo KAM800 DUPLA FACE com potência de 380m³. Material: Aço carbono 3mm com pintura preto alta temperatura, vidro cerâmico ShotRobax cordas de vedação do vidro e portas são importados.",
+    "Tampa Inox": "Tampa para churrasqueira em aço inox 304.<br><b>Custo R$ 8.600,00</b>",
+    "Tampa Epoxi": "Tampa para churrasqueira em chapa galvanizada com pintura preta EPOXI.<br><b>Custo R$ 4.500,00</b>",
+    "Revestimento Fundo": "Revestimento interno fundo em aço inox 304.<br><b>Custo R$ 2.000,00</b>",
+    "Revestimento Em L": "Revestimento interno fundo e uma lateral em aço inox 304.<br><b>Custo R$ 2.800,00</b>",
+    "Revestimento Em U": "Revestimento interno fundo e duas laterais em aço inox 304.<br><b>Custo R$ 3.500,00</b>",
+    "Sistema de Elevar Manual 2 3/16": "Sistema de elevar grelhas comando MANUAL na manivela com quadro eixo e guias e 2 grelhas removíveis, em vergalhão 3/16. Material aço inox 304.<br><b>Custo R$ 5.500,00</b>",
+    "Sistema de Elevar Manual 1/8 e 3/16": "Sistema de elevar grelhas comando MANUAL na manivela com quadro eixo e guias e 2 grelhas removíveis, uma em vergalhão 3/16 e outra em vergalão 1/8. Material aço inox 304.<br><b>Custo R$ 5.700,00</b>",
+    "Sistema de Elevar Manual Arg e 3/16": "Sistema de elevar grelhas comando MANUAL na manivela com quadro eixo e guias e 2 grelhas removíveis, uma em vergalhão 3/16 e outra em vergalão 1/8. Material aço inox 304.<br><b>Custo R$ 5.800,00</b>",
+    "Sistema de Elevar Manual Arg e 1/8": "Sistema de elevar grelhas comando MANUAL na manivela com quadro eixo e guias e 2 grelhas removíveis, uma em vergalhão 3/16 e outra em vergalão 1/8. Material aço inox 304.<br><b>Custo R$ 5.900,00</b>",
+    "Sistema de Elevar Motor 2 3/16": "Sistema de elevar grelhas comando elétrico com quadro eixo e guias e 2 grelhas removíveis, em vergalhão 3/16. Material aço inox 304.<br><b>Custo R$ 7.500,00</b>",
+    "Sistema de Elevar Motor 1/8 e 3/16": "Sistema de elevar grelhas ccomando elétrico com quadro eixo e guias e 2 grelhas removíveis, uma em vergalhão 3/16 e outra em vergalhão 1/8. Material aço inox 304.<br><b>Custo R$ 7.700,00</b>",
+    "Sistema de Elevar Motor Arg e 3/16": "Sistema de elevar grelhas comando elétrico com quadro eixo e guias e 2 grelhas removíveis, uma em vergalhão 3/16 e outra em vergalhão 1/8. Material aço inox 304.<br><b>Custo R$ 7.800,00</b>",
+    "Sistema de Elevar Motor Arg e 1/8": "Sistema de elevar grelhas comando elétrico com quadro eixo e guias e 2 grelhas removíveis, uma em vergalhão 3/16 e outra em vergalhão 1/8. Material aço inox 304.<br><b>Custo R$ 7.900,00</b>",
+    "Giratório 1L 4E": "Sistema giratório de espetos com 1 linha de 4 espetos. Material aço inox 304.<br><b>Custo R$ 4.200,00</b>",
+    "Giratório 1L 5E": "Sistema giratório de espetos com 1 linha de 5 espetos. Material aço inox 304.<br><b>Custo R$ 4.500,00</b>",
+    "Giratório 2L 5E": "Sistema giratório de espetos com 2 linhas de 5 espetos. Material aço inox 304.<br><b>Custo R$ 5.800,00</b>",
+    "Giratório 2L 6E": "Sistema giratório de espetos com 2 linha de 6 espetos. Material aço inox 304.<br><b>Custo R$ 6.200,00</b>",
+    "Giratório 2L 7E": "Sistema giratório de espetos com 2 linha de 7 espetos. Material aço inox 304.<br><b>Custo R$ 6.600,00</b>",
+    "Giratório 2L 8E": "Sistema giratório de espetos com 2 linha de 8 espetos. Material aço inox 304.<br><b>Custo R$ 7.000,00</b>",
+    "Cooktop + Bifeira": "Fogareiro Cooktop Tramontina tripla chama modificado com Bifeira Grill de 4mm em aço inox 304.<br><b>Custo R$ 3.800,00</b>",
+    "Cooktop": "Fogareiro Cooktop Tramontina tripla chama modificado em aço inox 304.<br><b>Custo R$ 2.500,00</b>",
+    "Porta Guilhotina Vidro L": "Uma estrutura de aço inox de porta guilhotina, com contrapeso e fechamento com vidro refletivo frontal e uma lateral fixa. Material: Base em aço inox 304 e superior em Metalon galvanizado, vidro Habith Cebrace.<br><b>Custo R$ 9.500,00</b>",
+    "Porta Guilhotina Vidro U": "Uma estrutura de aço inox de porta guilhotina, com contrapeso e fechamento com vidro refletivo frontal e duas laterais fixas. Material: Base em aço inox 304 e superior em Metalon galvanizado, vidro Habith Cebrace.<br><b>Custo R$ 10.500,00</b>",
+    "Porta Guilhotina Vidro F": "Uma estrutura de aço inox de porta guilhotina, com contrapeso e fechamento com vidro refletivo frontal. Material: Base em aço inox 304 e superior em Metalon galvanizado, vidro Habith Cebrace.<br><b>Custo R$ 8.500,00</b>",
+    "Porta Guilhotina Inox F": "Uma estrutura de aço inox de porta guilhotina, com contrapeso e fechamento em INOX. Material: Base em aço inox 304 e superior em Metalon galvanizado.<br><b>Custo R$ 9.000,00</b>",
+    "Porta Guilhotina Pedra F": "Uma estrutura de aço inox de porta guilhotina, com contrapeso e  fechamento em pedra fornecida pelo cliente. Material: Base em aço inox 304 e superior em Metalon galvanizado.<br><b>Custo R$ 7.000,00</b>",
+    "Coifa Epoxi": "Coifa interna para churrasqueira abrangendo a área de carvão, com 0 metros de dutos internos. Material:chapa galvanizada com pintura epóxi preta.<br><b>Custo R$ 3.200,00</b>",
+    "Isolamento Coifa": "Isolamento térmico de coifa com manta de fibra cerâmica.<br><b>Custo R$ 800,00</b>",
+    "Placa cimenticia Porta": "Aplicação de placa cimentícia sob porta guilhotina para fechamento e para receber o revestimento final.<br><b>Custo R$ 1.200,00</b>",
+    "Revestimento Base": "Revestimento na base inferior da churrasqueira com placa cimentícia e manta de fibra cerâmica. (item recomendável para proteger marcenaria).<br><b>Custo R$ 1.500,00</b>",
+    "Bifeteira grill": "Chapa bifeteira grill (adicional) para sistema de elevar.<br><b>Custo R$ 900,00</b>",
+    "Balanço 2": "Regulagens de espetos em balanço 2 estágios. Material aço inox 304.<br><b>Custo R$ 450,00</b>",
+    "Balanço 3": "Regulagens de espetos em balanço 3 estágios. Material aço inox 304.<br><b>Custo R$ 550,00</b>",
+    "Balanço 4": "Regulagens de espetos em balanço 4 estágios. Material aço inox 304.<br><b>Custo R$ 650,00</b>",
+    "Kit 6 Espetos": "Jogo de espetos 6 unidades sob medida com cabos em inox.<br><b>Custo R$ 750,00</b>",
+    "Regulagem Comum 2": "Regulagem de espetos frente e fundo com 2 estágios. Material aço inox 304.<br><b>Custo R$ 350,00</b>",
+    "Regulagem Comum 3": "Regulagem de espetos frente e fundo com 3 estágios. Material aço inox 304.<br><b>Custo R$ 450,00</b>",
+    "Regulagem Comum 4": "Regulagem de espetos frente e fundo com 4 estágios. Material aço inox 304.<br><b>Custo R$ 550,00</b>",
+    "Regulagem Comum 5": "Regulagem de espetos frente e fundo com 5 estágios. Material aço inox 304.<br><b>Custo R$ 650,00</b>",
+    "Gavetão Inox": "Gavetão inferior a churrasqueira com corrediças e rodízios. Material: chapa galvanizada interno, e frontão em aço inox 304.<br><b>Custo R$ 2.800,00</b>",
+    "Moldura Área de fogo": "Moldura área de fogo em aço inox 304. Material: aço inox 304.<br><b>Custo R$ 1.200,00</b>",
+    "Grelha de descanso": "Grelha de descanso<br><b>Custo R$ 600,00</b>",
+    "KAM800 2 Faces": "Lareira Kaminofen Modelo KAM800 DUPLA FACE com potência de 380m³. Material: Aço carbono 3mm com pintura preto alta temperatura, vidro cerâmico ShotRobax cordas de vedação do vidro e portas são importados.<br><b>Custo R$ 12.500,00</b>",
 }
+
 DEFAULT_POSITIONS = {
     "numero": {"x": 450, "y": 760, "size": 10}, "data": {"x": 480, "y": 760, "size": 10},
     "responsavelObra": {"x": 60, "y": 740, "size": 10}, "telefoneResponsavel": {"x": 220, "y": 740, "size": 10},
@@ -122,6 +122,13 @@ class PDFHTMLParser(HTMLParser):
     def handle_starttag(self, tag, attrs):
         new_style = self.style_stack[-1].copy()
         if tag in ['b', 'strong']: new_style['bold'] = True
+        
+        # *** INÍCIO DA CORREÇÃO ***
+        if tag == 'br':
+            self.x = self.initial_x
+            self.y -= self.wrapped_line_height
+        # *** FIM DA CORREÇÃO ***
+            
         attrs_dict = dict(attrs)
         if 'style' in attrs_dict:
             style_str = attrs_dict['style'].replace(' ', '').lower()
@@ -234,9 +241,8 @@ def draw_items_on_canvas(c, items_list, positions, page_width, initial_item_inde
                 except Exception as e:
                     print(f"Erro ao adicionar imagem {full_image_path}: {e}")
             continue
-        processed_line = item_line.replace("@@ETAPA_START@@", "").strip()
-        parts = processed_line.split('\n', 1)
-        html_description, cost_line = parts[0], parts[1].strip() if len(parts) > 1 else None
+
+        html_to_parse = item_line.replace("@@ETAPA_START@@", "").strip()
         prefix_width = 0
         if not is_etapa:
             numbered_item_index += 1
@@ -244,18 +250,14 @@ def draw_items_on_canvas(c, items_list, positions, page_width, initial_item_inde
             c.setFont("Helvetica", size)
             c.drawString(x_items, y_cursor, letter_prefix)
             prefix_width = c.stringWidth(letter_prefix, "Helvetica", size)
+            
         text_x = x_items + prefix_width
-        max_x_items = page_width - x_items - 20
+        max_x_items = page_width - x_items - 5
         parser = PDFHTMLParser(c, text_x, y_cursor, size, line_h, max_x_items, is_etapa=is_etapa)
-        parser.feed(html_description)
-        y_after_description = parser.y
-        if cost_line and not is_etapa:
-            y_for_cost = y_after_description - (size * 1.2)
-            c.setFont("Helvetica-Bold", size - 1)
-            c.drawString(text_x + 15, y_for_cost, cost_line)
-            y_cursor = y_for_cost - line_h
-        else:
-            y_cursor = y_after_description - line_h
+        parser.feed(html_to_parse)
+
+        y_cursor = parser.y - line_h
+
     return numbered_item_index
 
 @app.post("/generate")
@@ -311,9 +313,6 @@ async def generate_pdf(
             items_list_p_n = [s.strip() for s in page_items_str.splitlines() if s.strip()]
             if not items_list_p_n: continue
 
-            # *** A CORREÇÃO ESTÁ AQUI ***
-            # Recarrega o template de um novo leitor (reader) a cada iteração,
-            # garantindo que estamos sempre começando com uma página limpa.
             tpl_reader_p2 = PdfReader(TEMPLATE_PATH_PAGE2)
             tpl_page_p_n = tpl_reader_p2.pages[0]
             page_width_p2, page_height_p2 = float(tpl_page_p_n.mediabox.width), float(tpl_page_p_n.mediabox.height)
