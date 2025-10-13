@@ -34,8 +34,7 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=os.path.join(APP_DIR, "templates"))
 
 ITEM_DEFINITIONS = {
-    "Tampa Inox": "Tampa para churrasqueira em aço inox 304.
-    Custo R$ 8.600,00",
+    "Tampa Inox": "Tampa para churrasqueira em aço inox 304.\n    Custo R$ 8.600,00",
     "Tampa Epoxi": "Tampa para churrasqueira em chapa galvanizada com pintura preta EPOXI.",
     "Revestimento Fundo": "Revestimento interno fundo em aço inox 304.",
     "Revestimento Em L": "Revestimento interno fundo e uma lateral em aço inox 304.",
@@ -230,8 +229,6 @@ async def generate_pdf(
     
     c = canvas.Canvas(packet, pagesize=(page_width, page_height))
     
-    # ... (código anterior dentro de generate_pdf)
-
     def draw_text_at(key, text):
         if not text: return
         p = positions.get(key)
@@ -239,20 +236,16 @@ async def generate_pdf(
         c.setFont("Helvetica", p.get("size", 10))
         c.drawString(p.get("x", 50), p.get("y", 750), str(text)[:200])
         
-    # --- Desenha o número do orçamento em negrito ---
     numero_pos = positions.get("numero")
     if numero_pos and numero:
         c.setFont("Helvetica-Bold", numero_pos.get("size", 10))
         c.drawString(numero_pos.get("x", 50), numero_pos.get("y", 750), str(numero))
 
-    # --- Desenha os outros campos ---
     draw_text_at("data", data_formatada_pdf)
     draw_text_at("responsavelObra", responsavelObra); draw_text_at("telefoneResponsavel", telefoneResponsavel)
     draw_text_at("cliente", cliente); draw_text_at("cpf", cpf); draw_text_at("rg", rg)
     draw_text_at("telefone", telefone)
     draw_text_at("arquiteto", arquiteto or "N/A"); draw_text_at("projeto", projeto or "N/A")
-
-# ... (código posterior)
 
     addr_pos = positions.get("enderecoObra")
     if addr_pos and enderecoObra:
@@ -269,7 +262,12 @@ async def generate_pdf(
     
     for item_line in items_list:
         is_etapa = item_line.startswith("@@ETAPA_START@@")
-        html_to_parse = item_line.replace("@@ETAPA_START@@", "").strip() if is_etapa else item_line
+        
+        processed_line = item_line.replace("@@ETAPA_START@@", "").strip() if is_etapa else item_line
+        parts = processed_line.split('\n', 1)
+        html_description = parts[0]
+        cost_line = parts[1].strip() if len(parts) > 1 else None
+
         start_x, prefix_width = x_items, 0
         if not is_etapa:
             numbered_item_index += 1
@@ -277,11 +275,24 @@ async def generate_pdf(
             c.setFont("Helvetica", size)
             c.drawString(start_x, y_cursor, letter_prefix)
             prefix_width = c.stringWidth(letter_prefix, "Helvetica", size)
+        
         text_x = start_x + prefix_width
-        max_x_items = page_width - x_items - 5 # Margem direita de 10
+        max_x_items = page_width - x_items - 5 
+        
         parser = PDFHTMLParser(c, text_x, y_cursor, size, line_h, max_x_items, is_etapa=is_etapa)
-        parser.feed(html_to_parse)
-        y_cursor = parser.y - line_h
+        parser.feed(html_description)
+        
+        y_after_html = parser.y
+        
+        if cost_line and not is_etapa:
+            y_for_cost = y_after_html - (size * 1.4)
+            c.setFont("Helvetica-Oblique", size - 1) 
+            c.drawString(text_x + 15, y_for_cost, cost_line)
+            y_cursor = y_for_cost
+        else:
+            y_cursor = y_after_html
+        
+        y_cursor -= line_h
         
     c.save()
     packet.seek(0)
@@ -303,6 +314,4 @@ async def generate_pdf(
         out_bytes, 
         media_type="application/pdf", 
         headers={"Content-Disposition": f"inline; filename=\"{filename}\""}
-
     )
-
