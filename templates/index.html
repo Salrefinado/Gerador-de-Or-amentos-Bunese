@@ -93,7 +93,7 @@
           <div class="mb-2 mt-4">
             <label class="font-bold">Pesquisar/Adicionar Item</label>
             <div class="flex gap-2">
-                <input list="item-codes" id="item-input-search" 
+                <input list="item-codes" id="item-input-search"
                        placeholder="Digite ou selecione o código do item..."
                        class="flex-grow border p-2 rounded" />
                 
@@ -124,6 +124,17 @@
             </button>
           </div>
 
+          <div class="mb-2 mt-4">
+              <label class="font-bold">Adicionar Imagens de Referência</label>
+              <div class="flex gap-2 mt-2 flex-wrap">
+                  <button type="button" id="btn-add-porta" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Fotos Porta</button>
+                  <button type="button" id="btn-add-inox" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Foto Bancada Inox</button>
+                  <button type="button" id="btn-add-pedra" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Fotos Bancada Pedra</button>
+              </div>
+              <div class="mt-2">
+                  <input type="file" id="image-upload-input" class="border p-2 rounded w-full" accept="image/*">
+              </div>
+          </div>
 
           <div class="mb-4 bg-gray-200 p-3 rounded" id="items-list-container" data-item-definitions='{{ item_definitions | tojson }}'>
             <label class="font-bold">Itens Selecionados:</label>
