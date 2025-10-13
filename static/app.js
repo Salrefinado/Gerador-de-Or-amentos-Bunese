@@ -13,15 +13,46 @@ document.addEventListener('DOMContentLoaded', () => {
     let totalPages = 1;
     let previewTimer;
 
-    // --- Funções de Gerenciamento de Página ---
+    // --- Lógica para Menus Suspensos (Dropdowns) ---
+    document.querySelectorAll('.dropdown-trigger').forEach(trigger => {
+        trigger.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const menu = trigger.nextElementSibling;
+            const arrow = trigger.querySelector('svg');
+            
+            // Fecha outros menus abertos
+            document.querySelectorAll('.dropdown-menu').forEach(otherMenu => {
+                if (otherMenu !== menu) {
+                    otherMenu.classList.add('hidden');
+                    otherMenu.previousElementSibling.querySelector('svg').style.transform = 'rotate(0deg)';
+                }
+            });
 
+            // Abre ou fecha o menu atual
+            menu.classList.toggle('hidden');
+            if (menu.classList.contains('hidden')) {
+                arrow.style.transform = 'rotate(0deg)';
+            } else {
+                arrow.style.transform = 'rotate(180deg)';
+            }
+        });
+    });
+
+    // Fecha os menus se clicar fora deles
+    window.addEventListener('click', () => {
+        document.querySelectorAll('.dropdown-menu').forEach(menu => {
+            menu.classList.add('hidden');
+            menu.previousElementSibling.querySelector('svg').style.transform = 'rotate(0deg)';
+        });
+    });
+
+
+    // --- Funções de Gerenciamento de Página ---
     function switchPage(targetPage) {
         currentPage = targetPage;
-        // Atualiza abas
         document.querySelectorAll('.page-tab').forEach(tab => {
             tab.classList.toggle('active', parseInt(tab.dataset.page) === currentPage);
         });
-        // Atualiza containers de itens
         document.querySelectorAll('.items-list-container').forEach(container => {
             container.classList.toggle('active', parseInt(container.id.split('-').pop()) === currentPage);
         });
@@ -29,7 +60,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function addNewPage() {
         totalPages++;
-        // Cria nova aba
         const newTab = document.createElement('button');
         newTab.type = 'button';
         newTab.className = 'page-tab flex items-center';
@@ -37,7 +67,6 @@ document.addEventListener('DOMContentLoaded', () => {
         newTab.innerHTML = `Página ${totalPages} <span class="ml-2 text-red-400 hover:text-red-600 delete-page" data-page-to-delete="${totalPages}">&#128465;</span>`;
         pageTabsContainer.appendChild(newTab);
 
-        // Cria novo container de itens
         const newContainer = document.createElement('div');
         newContainer.className = 'items-list-container';
         newContainer.id = `items-list-container-${totalPages}`;
@@ -48,18 +77,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function deletePage(pageToDelete) {
-        if (pageToDelete <= 1) return; // Não permite deletar a primeira página
+        if (pageToDelete <= 1) return;
 
-        // Remove a aba e o container
         document.querySelector(`.page-tab[data-page="${pageToDelete}"]`).remove();
         document.getElementById(`items-list-container-${pageToDelete}`).remove();
 
-        // Se a página deletada era a ativa, volta para a anterior
         if (currentPage === pageToDelete) {
             switchPage(pageToDelete - 1);
         }
         
-        // Renumera as páginas restantes (abas e containers)
         totalPages--;
         document.querySelectorAll('.page-tab').forEach((tab, index) => {
             const newPageNum = index + 1;
@@ -79,17 +105,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Funções de Renderização e Atualização ---
-
     function renderSelectedItems() {
         const allPagesContent = [];
-        document.querySelectorAll('.items-list-container').forEach((container, index) => {
+        document.querySelectorAll('.items-list-container').forEach((container) => {
             const itemsOnPage = [];
             container.querySelectorAll('.selected-item, .selected-image-item').forEach(el => {
                 const itemHtml = getItemHtml(el);
                 if (itemHtml) itemsOnPage.push(itemHtml);
             });
             allPagesContent.push(itemsOnPage.join('\n'));
-            // Atualiza texto padrão
             const defaultText = container.querySelector('.default-text');
             if (defaultText) defaultText.style.display = (itemsOnPage.length === 0) ? 'block' : 'none';
         });
@@ -121,13 +145,16 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(response => response.ok ? response.blob() : Promise.reject('Erro ao gerar preview.'))
             .then(blob => {
                 const url = URL.createObjectURL(blob);
-                previewIframe.src = `${url}#navpanes=0&toolbar=1`;
+                // --- AQUI ESTÁ A MUDANÇA PRINCIPAL ---
+                // Trocamos toolbar=1 por toolbar=0 para esconder os controles do PDF
+                previewIframe.src = `${url}#toolbar=0&navpanes=0`;
                 previewIframe.onload = () => { URL.revokeObjectURL(url); previewIframe.style.opacity = '1'; orcForm.dataset.isGenerating = 'false'; };
             })
             .catch(error => {
                 console.error(error);
                 previewIframe.style.opacity = '1';
                 orcForm.dataset.isGenerating = 'false';
+                previewIframe.src = 'about:blank'; // Limpa o iframe em caso de erro
             });
     }
 
@@ -137,7 +164,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- Funções de Adição de Conteúdo (Itens, Imagens) ---
-
     function addItemToActiveDom(element) {
         document.querySelector(`.items-list-container.active`).appendChild(element);
         renderSelectedItems();
@@ -149,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
         newImageDiv.className = 'selected-image-item flex items-center mb-2 p-2 bg-gray-200 border rounded';
         newImageDiv.dataset.imagePath = imagePath;
         newImageDiv.dataset.title = title;
-        newImageDiv.innerHTML = `<span class="flex-grow p-1 italic text-gray-600">Imagem: ${imageName} (${title})</span><button type="button" class="ml-2 text-red-500 hover:text-red-700 font-bold">×</button>`;
+        newImageDiv.innerHTML = `<span class="flex-grow p-1 italic text-gray-600 text-sm">Img: ${imageName} (${title})</span><button type="button" class="ml-2 text-red-500 hover:text-red-700 font-bold">×</button>`;
         newImageDiv.querySelector('button').addEventListener('click', () => {
             newImageDiv.remove(); renderSelectedItems(); updatePreview();
         });
@@ -172,10 +198,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Event Listeners ---
-
     pageTabsContainer.addEventListener('click', (e) => {
-        if (e.target.closest('.page-tab')) {
-            const tab = e.target.closest('.page-tab');
+        const tab = e.target.closest('.page-tab');
+        if (tab) {
             if (e.target.classList.contains('delete-page')) {
                 const pageNum = parseInt(e.target.dataset.pageToDelete);
                 if (confirm(`Tem certeza que deseja excluir a Página ${pageNum}?`)) {
@@ -193,15 +218,23 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-add-pedra').addEventListener('click', () => addImageToDom('Fotos Bancada Pedra.png', '/static/Referencia/Fotos Bancada Pedra.png', 'Fotos referência: Equipamentos bancada Pedra'));
     document.getElementById('image-upload-input').addEventListener('change', uploadAndAddImage);
 
+    // Adiciona listener para todos os inputs do formulário principal
+    orcForm.querySelectorAll('input[type="text"], input[type="date"]').forEach(input => {
+        input.addEventListener('input', updatePreviewDebounced);
+    });
+
     // --- Funções Globais para `onclick` ---
     window.addEtapaSeparator = (stageNumber) => {
-        let stageText = {"1": "Etapa 1 Estrutural:", "2": "Etapa 2 Equipamentos:", "3": ""}[stageNumber] || "";
+        let stageText = {"1": "<b>Etapa 1 Estrutural:</b>", "2": "<b>Etapa 2 Equipamentos:</b>", "3": ""}[stageNumber] || "";
         const newItemDiv = document.createElement('div');
         newItemDiv.className = 'selected-item stage-separator flex items-center mb-2 p-2 bg-yellow-100 border-yellow-300 rounded font-bold';
         newItemDiv.innerHTML = `<span class="flex-grow p-1" contenteditable="true">${stageText}</span><button type="button" class="ml-2 text-red-500 hover:text-red-700 font-bold">×</button>`;
         newItemDiv.querySelector('span').addEventListener('input', () => { renderSelectedItems(); updatePreviewDebounced(); });
         newItemDiv.querySelector('button').addEventListener('click', () => { newItemDiv.remove(); renderSelectedItems(); updatePreview(); });
         addItemToActiveDom(newItemDiv);
+        if(!stageText) { // Dá foco se for um título customizado
+            newItemDiv.querySelector('span').focus();
+        }
     };
 
     window.addItemFromSearch = () => {
