@@ -25,7 +25,9 @@ except locale.Error:
 
 APP_DIR = os.path.dirname(__file__)
 TEMPLATE_PATH_DEFAULT = os.path.join(APP_DIR, "Orçamento 2.0.pdf")
+TEMPLATE_PATH_PAGE2 = os.path.join(APP_DIR, "static", "Pagina Nova.pdf")
 POSITIONS_FILE = os.path.join(APP_DIR, "positions.json")
+POSITIONS_FILE_PAGE2 = os.path.join(APP_DIR, "positions_page2.json")
 TEMPLATE_UPLOAD_PATH = os.path.join(APP_DIR, "uploaded_template.pdf")
 STATIC_DIR = os.path.join(APP_DIR, "static")
 REFERENCIA_DIR = os.path.join(STATIC_DIR, "Referencia")
@@ -94,12 +96,15 @@ DEFAULT_POSITIONS = {
     "itemsStart": {"x": 42, "y": 527, "size": 13}, "lineHeight": 25
 }
 
-def load_positions():
-    if os.path.exists(POSITIONS_FILE):
-        with open(POSITIONS_FILE, "r", encoding="utf-8") as f: return json.load(f)
-    return DEFAULT_POSITIONS.copy()
+DEFAULT_POSITIONS_PAGE2 = {
+    "itemsStart": {"x": 42, "y": 780, "size": 12}, "lineHeight": 26
+}
 
-# --- Classe para "traduzir" HTML para o PDF (versão final robusta) ---
+def load_positions(file_path, default_positions):
+    if os.path.exists(file_path):
+        with open(file_path, "r", encoding="utf-8") as f: return json.load(f)
+    return default_positions.copy()
+
 class PDFHTMLParser(HTMLParser):
     def __init__(self, canvas, x, y, size, line_height, max_x, is_etapa=False):
         super().__init__()
@@ -116,53 +121,40 @@ class PDFHTMLParser(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         new_style = self.style_stack[-1].copy()
-
-        if tag in ['b', 'strong']:
-            new_style['bold'] = True
-
+        if tag in ['b', 'strong']: new_style['bold'] = True
         attrs_dict = dict(attrs)
         if 'style' in attrs_dict:
             style_str = attrs_dict['style'].replace(' ', '').lower()
-            if 'font-weight:bold' in style_str or 'font-weight:700' in style_str:
-                new_style['bold'] = True
-            if 'background-color:yellow' in style_str:
-                new_style['highlight'] = True
-
+            if 'font-weight:bold' in style_str or 'font-weight:700' in style_str: new_style['bold'] = True
+            if 'background-color:yellow' in style_str: new_style['highlight'] = True
         self.style_stack.append(new_style)
 
     def handle_endtag(self, tag):
-        if len(self.style_stack) > 1:
-            self.style_stack.pop()
+        if len(self.style_stack) > 1: self.style_stack.pop()
 
     def handle_data(self, data):
         current_style = self.style_stack[-1]
         font_name = "Helvetica-Bold" if self.is_etapa or current_style['bold'] else "Helvetica"
         self.c.setFont(font_name, self.size)
-
         parts = re.split('(\\s+)', data)
         for part in parts:
             if not part: continue
             is_space = part.isspace()
             part_width = self.c.stringWidth(part, font_name, self.size)
-
             if not is_space and self.x + part_width > self.max_x:
                 if self.x > self.initial_x:
                     self.x = self.initial_x
                     self.y -= self.wrapped_line_height
-
             if current_style['highlight'] and not is_space:
                 self.c.setFillColor(yellow)
                 self.c.rect(self.x, self.y - 2, part_width, self.size, stroke=0, fill=1)
                 self.c.setFillColorRGB(0, 0, 0)
-
             self.c.drawString(self.x, self.y, part)
             self.x += part_width
 
-# --- Função reutilizável para desenhar texto com quebra de linha ---
 def draw_wrapped_text(canvas, text, x, y, size, max_width):
     canvas.setFont("Helvetica", size)
-    lines = []
-    words = text.split()
+    lines, words = [], text.split()
     if not words: return
     current_line = words[0]
     for word in words[1:]:
@@ -172,16 +164,13 @@ def draw_wrapped_text(canvas, text, x, y, size, max_width):
             lines.append(current_line)
             current_line = word
     lines.append(current_line)
-    line_height = size * 1.2
-    for line in lines:
-        canvas.drawString(x, y, line)
-        y -= line_height
+    for i, line in enumerate(lines):
+        canvas.drawString(x, y - (i * size * 1.2), line)
 
-# --- Rotas da aplicação ---
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     return templates.TemplateResponse("index.html", {
-        "request": request, "positions": load_positions(),
+        "request": request, "positions": load_positions(POSITIONS_FILE, DEFAULT_POSITIONS),
         "today": date.today().isoformat(), "template_exists": get_template_path() is not None,
         "item_definitions": ITEM_DEFINITIONS
     })
@@ -198,13 +187,10 @@ async def upload_template(file: UploadFile = File(...)):
 
 @app.post("/upload-image")
 async def upload_image(file: UploadFile = File(...)):
-    # Garante que o nome do arquivo seja seguro
     clean_filename = "".join(c for c in file.filename if c.isalnum() or c in (' ', '.', '_', '-')).strip()
     file_path = os.path.join(REFERENCIA_DIR, clean_filename)
-    
     with open(file_path, "wb") as buffer:
         buffer.write(await file.read())
-    # Retorna o caminho relativo para ser usado no frontend
     return {"filePath": f"/static/Referencia/{clean_filename}"}
 
 @app.post("/save-positions")
@@ -213,139 +199,56 @@ async def api_save_positions(request: Request):
     with open(POSITIONS_FILE, "w", encoding="utf-8") as f: json.dump(data, f, indent=2, ensure_ascii=False)
     return {"ok": True}
 
-# --- Rota de Geração de PDF ---
-@app.post("/generate")
-async def generate_pdf(
-    numero: str = Form(""), data: str = Form(""), responsavelObra: str = Form(""),
-    telefoneResponsavel: str = Form(""), cliente: str = Form(""), cpf: str = Form(""),
-    rg: str = Form(""), enderecoObra: str = Form(""), telefone: str = Form(""),
-    arquiteto: str = Form(""), projeto: str = Form(""), items: str = Form("")
-):
-    template_path = get_template_path()
-    if not template_path: return {"error": "Nenhum template disponível."}
-
-    positions = load_positions()
-
-    data_formatada_pdf = data
-    try: data_formatada_pdf = datetime.strptime(data, '%Y-%m-%d').date().strftime("%d de %B de %Y").replace(" de 0", " de ")
-    except ValueError: pass
-
-    def clean(s): return "".join(c for c in s.strip().replace("/", "_").replace("\\", "_") if c.isalnum() or c in (' ', '_', '.'))
-
-    prefixo_projeto = f"{clean(projeto)} " if clean(projeto) and clean(projeto).upper() not in ("N/A", "NA", "NÃO SE APLICA") else ""
-    filename = f"Orçamento {clean(numero)} {prefixo_projeto}cliente {clean(cliente)}.pdf"
-
-    packet = io.BytesIO()
-    try:
-        tpl_reader = PdfReader(template_path)
-        page_width, page_height = float(tpl_reader.pages[0].mediabox.width), float(tpl_reader.pages[0].mediabox.height)
-    except Exception: page_width, page_height = letter
-
-    c = canvas.Canvas(packet, pagesize=(page_width, page_height))
-
-    def draw_text_at(key, text):
-        if not text: return
-        p = positions.get(key)
-        if not p: return
-        c.setFont("Helvetica", p.get("size", 10))
-        c.drawString(p.get("x", 50), p.get("y", 750), str(text)[:200])
-
-    numero_pos = positions.get("numero")
-    if numero_pos and numero:
-        c.setFont("Helvetica-Bold", numero_pos.get("size", 10))
-        c.drawString(numero_pos.get("x", 50), numero_pos.get("y", 750), str(numero))
-
-    draw_text_at("data", data_formatada_pdf)
-    draw_text_at("responsavelObra", responsavelObra); draw_text_at("telefoneResponsavel", telefoneResponsavel)
-    draw_text_at("cliente", cliente); draw_text_at("cpf", cpf); draw_text_at("rg", rg)
-    draw_text_at("telefone", telefone)
-    draw_text_at("arquiteto", arquiteto or "N/A"); draw_text_at("projeto", projeto or "N/A")
-
-    addr_pos = positions.get("enderecoObra")
-    if addr_pos and enderecoObra:
-        max_width_addr = page_width - addr_pos.get("x", 60) - 25
-        draw_wrapped_text(c, enderecoObra, addr_pos.get("x", 60), addr_pos.get("y", 660), addr_pos.get("size", 10), max_width_addr)
-
-    items_list = [s.strip() for s in items.splitlines() if s.strip()]
-    x_items = positions.get("itemsStart", {}).get("x", 60)
-    y_items = positions.get("itemsStart", {}).get("y", 560)
+def draw_items_on_canvas(c, items_list, positions, page_width, initial_item_index=0):
+    x_items = positions.get("itemsStart", {}).get("x", 42)
+    y_items = positions.get("itemsStart", {}).get("y", 527)
     line_h = positions.get("lineHeight", 25)
-    size = positions.get("itemsStart", {}).get("size", 13)
-
-    y_cursor, numbered_item_index = y_items, 0
+    size = positions.get("itemsStart", {}).get("size", 12)
+    y_cursor, numbered_item_index = y_items, initial_item_index
 
     for item_line in items_list:
+        if y_cursor < 50:
+            print("Aviso: Conteúdo excedeu o limite da página.")
+            break
         is_etapa = item_line.startswith("@@ETAPA_START@@")
         is_image = item_line.startswith("@@IMAGE_START@@")
-
         if is_image:
-            # Extrai o caminho da imagem e o título
             image_data = item_line.replace("@@IMAGE_START@@", "").strip()
-            image_path, title = "", "Foto referência" # Valores padrão
-            if "|" in image_data:
-                image_path, title = image_data.split("|", 1)
-            else:
-                image_path = image_data
-
+            image_path, title = (image_data.split("|", 1) + ["Foto referência"])[:2]
             full_image_path = os.path.join(APP_DIR, image_path.lstrip('/'))
-
             if os.path.exists(full_image_path):
                 try:
-                    # --- Desenho do Título ---
-                    title_size = size - 1 # Um pouco menor que o texto do item
+                    title_size = size - 1
                     c.setFont("Helvetica-Bold", title_size)
                     title_width = c.stringWidth(title, "Helvetica-Bold", title_size)
-                    x_title = (page_width - title_width) / 2 # Centraliza o título
-
-                    # Desce o cursor para o título
                     y_cursor -= (title_size * 1.5)
-                    c.drawString(x_title, y_cursor, title)
-                    y_cursor -= (line_h * 0.5) # Adiciona espaço depois do título
-
-                    # --- Desenho da Imagem ---
+                    c.drawString((page_width - title_width) / 2, y_cursor, title)
+                    y_cursor -= (line_h * 0.5)
                     img = Image.open(full_image_path)
-                    img_width, img_height = img.size
-                    aspect = img_height / float(img_width)
+                    aspect = img.height / float(img.width)
                     display_width = page_width * 0.45
                     display_height = display_width * aspect
-                    
-                    # Desce o cursor para a imagem
                     y_cursor -= display_height
-                    
-                    # Centraliza a imagem
-                    x_image = (page_width - display_width) / 2
-                    
-                    c.drawImage(full_image_path, x_image, y_cursor, width=display_width, height=display_height, preserveAspectRatio=True)
-                    
-                    # Adiciona um espaçamento final após a imagem
+                    c.drawImage(full_image_path, (page_width - display_width) / 2, y_cursor, width=display_width, height=display_height, preserveAspectRatio=True)
                     y_cursor -= line_h
-
                 except Exception as e:
                     print(f"Erro ao adicionar imagem {full_image_path}: {e}")
-            continue # Pula para o próximo item
-
-        # Lógica para itens de texto (existente)
+            continue
         processed_line = item_line.replace("@@ETAPA_START@@", "").strip()
         parts = processed_line.split('\n', 1)
-        html_description = parts[0]
-        cost_line = parts[1].strip() if len(parts) > 1 else None
-        
-        start_x, prefix_width = x_items, 0
+        html_description, cost_line = parts[0], parts[1].strip() if len(parts) > 1 else None
+        prefix_width = 0
         if not is_etapa:
             numbered_item_index += 1
-            letter_prefix = f"{chr(65 + numbered_item_index - 1)}) "
+            letter_prefix = f"{chr(64 + numbered_item_index)}) "
             c.setFont("Helvetica", size)
-            c.drawString(start_x, y_cursor, letter_prefix)
+            c.drawString(x_items, y_cursor, letter_prefix)
             prefix_width = c.stringWidth(letter_prefix, "Helvetica", size)
-
-        text_x = start_x + prefix_width
-        max_x_items = page_width - x_items - 10
-
+        text_x = x_items + prefix_width
+        max_x_items = page_width - x_items - 20
         parser = PDFHTMLParser(c, text_x, y_cursor, size, line_h, max_x_items, is_etapa=is_etapa)
         parser.feed(html_description)
-        
         y_after_description = parser.y
-        
         if cost_line and not is_etapa:
             y_for_cost = y_after_description - (size * 1.2)
             c.setFont("Helvetica-Bold", size - 1)
@@ -353,25 +256,77 @@ async def generate_pdf(
             y_cursor = y_for_cost - line_h
         else:
             y_cursor = y_after_description - line_h
+    return numbered_item_index
 
-    c.save()
-    packet.seek(0)
-
-    overlay_reader = PdfReader(packet)
+@app.post("/generate")
+async def generate_pdf(
+    numero: str = Form(""), data: str = Form(""), responsavelObra: str = Form(""),
+    telefoneResponsavel: str = Form(""), cliente: str = Form(""), cpf: str = Form(""),
+    rg: str = Form(""), enderecoObra: str = Form(""), telefone: str = Form(""),
+    arquiteto: str = Form(""), projeto: str = Form(""), items: str = Form("")
+):
+    template_path_p1 = get_template_path()
+    if not template_path_p1: return HTMLResponse("Nenhum template de orçamento disponível.", status_code=400)
+    
+    positions_p1 = load_positions(POSITIONS_FILE, DEFAULT_POSITIONS)
+    data_formatada_pdf = data
+    try: data_formatada_pdf = datetime.strptime(data, '%Y-%m-%d').strftime("%d de %B de %Y").replace(" de 0", " de ")
+    except ValueError: pass
+    
+    def clean(s): return "".join(c for c in s.strip().replace("/", "_").replace("\\", "_") if c.isalnum() or c in (' ', '_', '.'))
+    prefixo_projeto = f"{clean(projeto)} " if clean(projeto) and clean(projeto).upper() not in ("N/A", "NA", "NÃO SE APLICA") else ""
+    filename = f"Orçamento {clean(numero)} {prefixo_projeto}cliente {clean(cliente)}.pdf"
+    
+    all_pages_items = [page.strip() for page in items.split("@@PAGE_BREAK@@")]
     writer = PdfWriter()
-    tpl_reader = PdfReader(template_path)
-    tpl_page = tpl_reader.pages[0]
-    tpl_page.merge_page(overlay_reader.pages[0])
-    writer.add_page(tpl_page)
 
-    for i in range(1, len(tpl_reader.pages)): writer.add_page(tpl_reader.pages[i])
+    # --- Página 1 ---
+    tpl_reader_p1 = PdfReader(template_path_p1)
+    page_width, page_height = float(tpl_reader_p1.pages[0].mediabox.width), float(tpl_reader_p1.pages[0].mediabox.height)
+    packet_p1 = io.BytesIO()
+    c1 = canvas.Canvas(packet_p1, pagesize=(page_width, page_height))
+    if p_num := positions_p1.get("numero"): c1.setFont("Helvetica-Bold", p_num.get("size", 10)); c1.drawString(p_num.get("x", 50), p_num.get("y", 750), str(numero))
+    def draw_text_at(key, text):
+        if p := positions_p1.get(key):
+            if text:
+                c1.setFont("Helvetica", p.get("size", 10))
+                c1.drawString(p.get("x", 50), p.get("y", 750), str(text)[:200])
+    draw_text_at("data", data_formatada_pdf); draw_text_at("responsavelObra", responsavelObra); draw_text_at("telefoneResponsavel", telefoneResponsavel)
+    draw_text_at("cliente", cliente); draw_text_at("cpf", cpf); draw_text_at("rg", rg); draw_text_at("telefone", telefone)
+    draw_text_at("arquiteto", arquiteto or "N/A"); draw_text_at("projeto", projeto or "N/A")
+    if p_addr := positions_p1.get("enderecoObra"): draw_wrapped_text(c1, enderecoObra, p_addr.get("x", 60), p_addr.get("y", 660), p_addr.get("size", 10), page_width - p_addr.get("x", 60) - 25)
+    
+    items_list_p1 = [s.strip() for s in all_pages_items[0].splitlines() if s.strip()]
+    last_item_index = draw_items_on_canvas(c1, items_list_p1, positions_p1, page_width, 0)
+    
+    c1.save(); packet_p1.seek(0)
+    tpl_page_p1 = tpl_reader_p1.pages[0]; tpl_page_p1.merge_page(PdfReader(packet_p1).pages[0]); writer.add_page(tpl_page_p1)
+    for i in range(1, len(tpl_reader_p1.pages)): writer.add_page(tpl_reader_p1.pages[i])
 
-    out_bytes = io.BytesIO()
-    writer.write(out_bytes)
-    out_bytes.seek(0)
+    # --- Páginas Adicionais (2, 3, 4, etc.) ---
+    if len(all_pages_items) > 1 and os.path.exists(TEMPLATE_PATH_PAGE2):
+        positions_p2 = load_positions(POSITIONS_FILE_PAGE2, DEFAULT_POSITIONS_PAGE2)
+        
+        for page_items_str in all_pages_items[1:]:
+            items_list_p_n = [s.strip() for s in page_items_str.splitlines() if s.strip()]
+            if not items_list_p_n: continue
 
-    return StreamingResponse(
-        out_bytes,
-        media_type="application/pdf",
-        headers={"Content-Disposition": f"inline; filename=\"{filename}\""}
-    )
+            # *** A CORREÇÃO ESTÁ AQUI ***
+            # Recarrega o template de um novo leitor (reader) a cada iteração,
+            # garantindo que estamos sempre começando com uma página limpa.
+            tpl_reader_p2 = PdfReader(TEMPLATE_PATH_PAGE2)
+            tpl_page_p_n = tpl_reader_p2.pages[0]
+            page_width_p2, page_height_p2 = float(tpl_page_p_n.mediabox.width), float(tpl_page_p_n.mediabox.height)
+
+            packet_p_n = io.BytesIO()
+            c_n = canvas.Canvas(packet_p_n, pagesize=(page_width_p2, page_height_p2))
+            
+            last_item_index = draw_items_on_canvas(c_n, items_list_p_n, positions_p2, page_width_p2, last_item_index)
+            c_n.save(); packet_p_n.seek(0)
+            
+            overlay_page = PdfReader(packet_p_n).pages[0]
+            tpl_page_p_n.merge_page(overlay_page)
+            writer.add_page(tpl_page_p_n)
+
+    out_bytes = io.BytesIO(); writer.write(out_bytes); out_bytes.seek(0)
+    return StreamingResponse(out_bytes, media_type="application/pdf", headers={"Content-Disposition": f"inline; filename=\"{filename}\""})
