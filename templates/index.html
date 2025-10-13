@@ -5,15 +5,19 @@
   <title>Gerador de Orçamentos</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
   <style>
-    /* Ajuste para o preview ficar grande */
     .h-screen-full { min-height: calc(100vh - 120px); }
-    [contenteditable]:focus {
-        outline: 1px solid #a0aec0; /* gray-500 */
-        box-shadow: 0 0 0 1px #a0aec0;
+    [contenteditable]:focus { outline: 1px solid #a0aec0; box-shadow: 0 0 0 1px #a0aec0; }
+    .page-tab {
+        @apply px-4 py-2 text-sm font-medium rounded-t-lg transition-colors duration-200;
     }
-    .toolbar-btn {
-        @apply px-3 py-1 border rounded bg-gray-200 hover:bg-gray-300;
+    .page-tab.active {
+        @apply bg-gray-200 text-gray-800;
     }
+    .page-tab:not(.active) {
+        @apply text-gray-500 hover:bg-gray-100 hover:text-gray-700;
+    }
+    .items-list-container { display: none; }
+    .items-list-container.active { display: block; }
   </style>
 </head>
 <body class="bg-gray-100">
@@ -25,105 +29,45 @@
         <form id="orc-form" method="post" action="/generate">
           
           <div class="grid grid-cols-2 gap-2 mb-2">
-            <div>
-              <label>Nº do Orçamento</label>
-              <input name="numero" id="numero" class="w-full border p-2 rounded" value="669" />
-            </div>
-            <div>
-              <label>Data do Orçamento</label>
-              <input name="data" id="data" type="date" class="w-full border p-2 rounded" value="{{ today }}" />
-            </div>
+            <div><label>Nº do Orçamento</label><input name="numero" id="numero" class="w-full border p-2 rounded" value="669" /></div>
+            <div><label>Data do Orçamento</label><input name="data" id="data" type="date" class="w-full border p-2 rounded" value="{{ today }}" /></div>
           </div>
-
           <div class="grid grid-cols-2 gap-2 mb-2">
-            <div>
-              <label>Responsável pela Obra</label>
-              <input name="responsavelObra" id="responsavelObra" class="w-full border p-2 rounded" value="N/A" />
-            </div>
-            <div>
-              <label>Telefone (Responsável)</label>
-              <input name="telefoneResponsavel" id="telefoneResponsavel" class="w-full border p-2 rounded" value="N/A" />
-            </div>
+            <div><label>Responsável pela Obra</label><input name="responsavelObra" id="responsavelObra" class="w-full border p-2 rounded" value="N/A" /></div>
+            <div><label>Telefone (Responsável)</label><input name="telefoneResponsavel" id="telefoneResponsavel" class="w-full border p-2 rounded" value="N/A" /></div>
           </div>
-          
           <div class="grid grid-cols-2 gap-2 mb-2">
-            <div>
-              <label>Cliente</label>
-              <input name="cliente" id="cliente" class="w-full border p-2 rounded" />
-            </div>
-            <div>
-              <label>Telefone (Cliente)</label>
-              <input name="telefone" id="telefone" class="w-full border p-2 rounded" />
-            </div>
+            <div><label>Cliente</label><input name="cliente" id="cliente" class="w-full border p-2 rounded" /></div>
+            <div><label>Telefone (Cliente)</label><input name="telefone" id="telefone" class="w-full border p-2 rounded" /></div>
           </div>
-
           <div class="grid grid-cols-2 gap-2 mb-2">
-            <div>
-              <label>RG</label>
-              <input name="rg" id="rg" class="w-full border p-2 rounded" value="N/A" />
-            </div>
-            <div>
-              <label>CPF</label>
-              <input name="cpf" id="cpf" class="w-full border p-2 rounded" value="N/A" />
-            </div>
+            <div><label>RG</label><input name="rg" id="rg" class="w-full border p-2 rounded" value="N/A" /></div>
+            <div><label>CPF</label><input name="cpf" id="cpf" class="w-full border p-2 rounded" value="N/A" /></div>
           </div>
-
           <div class="grid grid-cols-2 gap-2 mb-2">
-            <div>
-              <label>Arquiteto(a)</label>
-              <input name="arquiteto" id="arquiteto" class="w-full border p-2 rounded" value="N/A" />
-            </div>
-            <div>
-              <label>Projeto</label>
-              <input name="projeto" id="projeto" class="w-full border p-2 rounded" value="N/A" />
-            </div>
+            <div><label>Arquiteto(a)</label><input name="arquiteto" id="arquiteto" class="w-full border p-2 rounded" value="N/A" /></div>
+            <div><label>Projeto</label><input name="projeto" id="projeto" class="w-full border p-2 rounded" value="N/A" /></div>
           </div>
-
-          <div class="mb-2">
-            <label>Endereço da Obra</label>
-            <input name="enderecoObra" id="enderecoObra" class="w-full border p-2 rounded" />
-          </div>
+          <div class="mb-2"><label>Endereço da Obra</label><input name="enderecoObra" id="enderecoObra" class="w-full border p-2 rounded" /></div>
 
           <div class="flex gap-2 mb-4">
               <button type="button" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600" onclick="addEtapaSeparator(1)">1º Etapa</button>
               <button type="button" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600" onclick="addEtapaSeparator(2)">2º Etapa</button>
               <button type="button" class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600" onclick="addEtapaSeparator(3)">Titulo</button>
           </div>
-
           <div class="mb-2 mt-4">
             <label class="font-bold">Pesquisar/Adicionar Item</label>
             <div class="flex gap-2">
-                <input list="item-codes" id="item-input-search"
-                       placeholder="Digite ou selecione o código do item..."
-                       class="flex-grow border p-2 rounded" />
-                
+                <input list="item-codes" id="item-input-search" placeholder="Digite ou selecione o código do item..." class="flex-grow border p-2 rounded" />
                 <datalist id="item-codes">
                     {% for code, name in item_definitions.items() %}
                         <option value="{{ code }}">{{ code }}</option>
                     {% endfor %}
                 </datalist>
-
                 <button type="button" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" onclick="addItemFromSearch()">Adicionar</button>
             </div>
           </div>
           
-          <div class="flex items-center gap-3 my-2 p-2 bg-gray-100 rounded border">
-            <label class="text-base font-semibold mr-2">Ferramentas:</label>
-            
-            <button type="button" title="Negrito" class="p-2 rounded hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" onclick="formatText('bold')">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14h2v2h-2v-2zm0-8h2v6h-2V8z" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 5h7.5A2.25 2.25 0 0118 7.25V15a2.25 2.25 0 01-2.25 2.25H12.75A2.25 2.25 0 0110.5 15v-2.25a.75.75 0 01.75-.75h1.5a.75.75 0 00.75-.75V8.25a.75.75 0 00-.75-.75h-1.5a.75.75 0 01-.75-.75V5z" clip-rule="evenodd" fill="currentColor" />
-              </svg>
-            </button>
-            
-            <button type="button" title="Grifar" class="p-2 rounded hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500" onclick="formatText('hiliteColor', 'yellow')">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-              </svg>
-            </button>
-          </div>
-
           <div class="mb-2 mt-4">
               <label class="font-bold">Adicionar Imagens de Referência</label>
               <div class="flex gap-2 mt-2 flex-wrap">
@@ -131,21 +75,35 @@
                   <button type="button" id="btn-add-inox" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Foto Bancada Inox</button>
                   <button type="button" id="btn-add-pedra" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Fotos Bancada Pedra</button>
               </div>
-              <div class="mt-2">
-                  <input type="file" id="image-upload-input" class="border p-2 rounded w-full" accept="image/*">
-              </div>
+              <div class="mt-2"><input type="file" id="image-upload-input" class="border p-2 rounded w-full" accept="image/*"></div>
           </div>
 
-          <div class="mb-4 bg-gray-200 p-3 rounded" id="items-list-container" data-item-definitions='{{ item_definitions | tojson }}'>
-            <label class="font-bold">Itens Selecionados:</label>
-            <p class="text-sm text-gray-500 italic mt-1 default-text">Nenhum item selecionado.</p>
+          <div class="flex items-center gap-3 my-4 p-2 bg-gray-100 rounded border">
+            <label class="text-base font-semibold mr-2">Ferramentas:</label>
+            <button type="button" title="Negrito" class="p-2 rounded hover:bg-gray-300" onclick="formatText('bold')"><strong>B</strong></button>
+            <button type="button" title="Grifar" class="p-2 rounded hover:bg-gray-300" onclick="formatText('hiliteColor', 'yellow')">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
+            </button>
+          </div>
+          
+          <div class="border-b border-gray-200 mb-2 flex items-center">
+            <nav id="page-tabs" class="flex-grow">
+                <button type="button" class="page-tab active" data-page="1">Página 1</button>
+            </nav>
+            <button type="button" id="btn-add-page" class="ml-2 text-blue-500 hover:text-blue-700 font-bold text-2xl leading-none" title="Adicionar Nova Página">+</button>
+          </div>
+          
+          <div id="items-editor-wrapper" data-item-definitions='{{ item_definitions | tojson }}'>
+            <div class="items-list-container active" id="items-list-container-1">
+              <p class="text-sm text-gray-500 italic mt-1 default-text">Nenhum item selecionado.</p>
+            </div>
           </div>
           
           <input type="hidden" name="items" id="hidden-items-input" value="">
 
-          <div class="flex gap-2 mb-6">
+          <div class="flex gap-2 mt-6 mb-4">
             <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Gerar / Salvar PDF</button>
-            <a href="/static/Orçamento%202.0.pdf" target="_blank" class="px-4 py-2 bg-gray-200 rounded">Abrir template</a>
+            <a href="/static/Orçamento%202.0.pdf" target="_blank" class="px-4 py-2 bg-gray-200 rounded">Abrir template P1</a>
           </div>
           
         </form>
@@ -160,5 +118,4 @@
 
   <script src="/static/app.js"></script>
 </body>
-
 </html>
