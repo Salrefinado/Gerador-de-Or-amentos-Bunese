@@ -112,11 +112,9 @@ class PDFHTMLParser(HTMLParser):
     def handle_starttag(self, tag, attrs):
         new_style = self.style_stack[-1].copy()
         
-        # 1. Checa por tags de formatação direta
         if tag in ['b', 'strong']:
             new_style['bold'] = True
             
-        # 2. Checa por atributos de estilo em QUALQUER tag
         attrs_dict = dict(attrs)
         if 'style' in attrs_dict:
             style_str = attrs_dict['style'].replace(' ', '').lower()
@@ -263,11 +261,13 @@ async def generate_pdf(
     for item_line in items_list:
         is_etapa = item_line.startswith("@@ETAPA_START@@")
         
-        processed_line = item_line.replace("@@ETAPA_START@@", "").strip() if is_etapa else item_line
+        # Separa a descrição do custo, se houver
+        processed_line = item_line.replace("@@ETAPA_START@@", "").strip()
         parts = processed_line.split('\n', 1)
         html_description = parts[0]
         cost_line = parts[1].strip() if len(parts) > 1 else None
 
+        # Desenha o prefixo (A), B), etc) se não for uma etapa
         start_x, prefix_width = x_items, 0
         if not is_etapa:
             numbered_item_index += 1
@@ -276,23 +276,27 @@ async def generate_pdf(
             c.drawString(start_x, y_cursor, letter_prefix)
             prefix_width = c.stringWidth(letter_prefix, "Helvetica", size)
         
+        # Posição inicial do texto (depois do prefixo)
         text_x = start_x + prefix_width
-        max_x_items = page_width - x_items - 5 
+        max_x_items = page_width - x_items - 10 # Margem direita
         
+        # Desenha a descrição principal (que pode ter HTML)
         parser = PDFHTMLParser(c, text_x, y_cursor, size, line_h, max_x_items, is_etapa=is_etapa)
         parser.feed(html_description)
         
-        y_after_html = parser.y
+        # Pega a posição Y final após desenhar a descrição
+        y_after_description = parser.y
         
+        # Se houver uma linha de custo, desenha-a logo abaixo
         if cost_line and not is_etapa:
-            y_for_cost = y_after_html - (size * 1.4)
-            c.setFont("Helvetica-Oblique", size - 1) 
-            c.drawString(text_x + 15, y_for_cost, cost_line)
-            y_cursor = y_for_cost
+            y_for_cost = y_after_description - (size * 1.2) # Posição um pouco abaixo
+            c.setFont("Helvetica-Bold", size - 1) # Fonte em negrito
+            c.drawString(text_x + 15, y_for_cost, cost_line) # Desenha com recuo
+            # A posição do cursor para o próximo item começa abaixo do custo
+            y_cursor = y_for_cost - line_h
         else:
-            y_cursor = y_after_html
-        
-        y_cursor -= line_h
+            # Se não houver custo, o próximo item começa abaixo da descrição
+            y_cursor = y_after_description - line_h
         
     c.save()
     packet.seek(0)
