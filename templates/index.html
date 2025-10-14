@@ -46,7 +46,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 flex-grow main-container">
       
       <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-md overflow-y-auto">
-        <form id="orc-form" method="post" action="/generate" class="space-y-4">
+        <form id="orc-form" class="space-y-4">
           
           <h2 class="text-xl font-semibold text-gray-800 border-b pb-2 mb-4">Informações do Orçamento</h2>
 
@@ -117,7 +117,7 @@
               <label class="text-base font-semibold">Ferramentas de Edição:</label>
               <button type="button" title="Negrito" class="p-2 rounded-full hover:bg-gray-300 text-xl" onclick="formatText('bold')"><strong>B</strong></button>
               <button type="button" title="Grifar" class="p-2 rounded-full hover:bg-gray-300" onclick="formatText('hiliteColor', 'yellow')">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
               </button>
             </div>
             <div class="border-b border-gray-300 flex items-center">
@@ -137,7 +137,7 @@
           <input type="hidden" name="items" id="hidden-items-input" value="">
 
           <div class="pt-6">
-            <button type="submit" class="w-full bg-indigo-600 text-white font-bold px-4 py-3 rounded-lg hover:bg-indigo-700 transition-all">Gerar e Visualizar PDF</button>
+            <button type="submit" class="w-full bg-indigo-600 text-white font-bold px-4 py-3 rounded-lg hover:bg-indigo-700 transition-all">Gerar Orçamentos</button>
           </div>
           
         </form>
