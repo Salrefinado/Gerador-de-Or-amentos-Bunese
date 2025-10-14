@@ -1,8 +1,8 @@
 from fastapi import FastAPI, Request, UploadFile, File, Form
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-import io, json, os, re
+import io, json, os, re, base64
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.colors import yellow
@@ -86,6 +86,53 @@ ITEM_DEFINITIONS = {
     "KAM800 2 Faces": "Lareira Kaminofen Modelo KAM800 DUPLA FACE com potência de 380m³. Material: Aço carbono 3mm com pintura preto alta temperatura, vidro cerâmico ShotRobax cordas de vedação do vidro e portas são importados.<br><b>Custo R$ 12.500,00</b>",
 }
 
+ITEM_DEFINITIONS_PRODUCAO = {
+    "Tampa Inox": "Tampa aço inox 304.",
+    "Tampa Epoxi": "Tampa chapa galvanizada pintura preta EPOXI.",
+    "Revestimento Fundo": "Revestimento interno fundo aço inox 304.",
+    "Revestimento Em L": "Revestimento interno fundo e uma lateral aço inox 304.",
+    "Revestimento Em U": "Revestimento interno fundo e duas laterais aço inox 304.",
+    "Sistema de Elevar Manual 2 3/16": "Sistema elevar grelhas MANUAL 2 grelhas vergalhão 3/16 aço inox 304.",
+    "Sistema de Elevar Manual 1/8 e 3/16": "Sistema elevar grelhas MANUAL 2 grelhas vergalhão 3/16 e 1/8 aço inox 304.",
+    "Sistema de Elevar Manual Arg e 3/16": "Sistema elevar grelhas MANUAL 2 grelhas vergalhão Arg e 3/16 aço inox 304.",
+    "Sistema de Elevar Manual Arg e 1/8": "Sistema elevar grelhas MANUAL 2 grelhas vergalhão Arg e 1/8 aço inox 304.",
+    "Sistema de Elevar Motor 2 3/16": "Sistema elevar grelhas elétrico 2 grelhas vergalhão 3/16 aço inox 304.",
+    "Sistema de Elevar Motor 1/8 e 3/16": "Sistema elevar grelhas elétrico 2 grelhas vergalhão 1/8 e 3/16 aço inox 304.",
+    "Sistema de Elevar Motor Arg e 3/16": "Sistema elevar grelhas elétrico 2 grelhas vergalhão Arg e 3/16 aço inox 304.",
+    "Sistema de Elevar Motor Arg e 1/8": "Sistema elevar grelhas elétrico 2 grelhas vergalhão Arg e 1/8 aço inox 304.",
+    "Giratório 1L 4E": "Sistema giratório 1 linha 4 espetos aço inox 304.",
+    "Giratório 1L 5E": "Sistema giratório 1 linha 5 espetos aço inox 304.",
+    "Giratório 2L 5E": "Sistema giratório 2 linhas 5 espetos aço inox 304.",
+    "Giratório 2L 6E": "Sistema giratório 2 linhas 6 espetos aço inox 304.",
+    "Giratório 2L 7E": "Sistema giratório 2 linhas 7 espetos aço inox 304.",
+    "Giratório 2L 8E": "Sistema giratório 2 linhas 8 espetos aço inox 304.",
+    "Cooktop + Bifeira": "Cooktop Tramontina tripla chama com Bifeira Grill 4mm aço inox 304.",
+    "Cooktop": "Cooktop Tramontina tripla chama aço inox 304.",
+    "Porta Guilhotina Vidro L": "Porta guilhotina vidro L aço inox 304 e Metalon galvanizado.",
+    "Porta Guilhotina Vidro U": "Porta guilhotina vidro U aço inox 304 e Metalon galvanizado.",
+    "Porta Guilhotina Vidro F": "Porta guilhotina vidro F aço inox 304 e Metalon galvanizado.",
+    "Porta Guilhotina Inox F": "Porta guilhotina inox F aço inox 304 e Metalon galvanizado.",
+    "Porta Guilhotina Pedra F": "Porta guilhotina pedra F aço inox 304 e Metalon galvanizado.",
+    "Coifa Epoxi": "Coifa interna chapa galvanizada pintura epóxi preta.",
+    "Isolamento Coifa": "Isolamento coifa manta de fibra cerâmica.",
+    "Placa cimenticia Porta": "Placa cimentícia porta guilhotina.",
+    "Revestimento Base": "Revestimento base inferior placa cimentícia e manta de fibra cerâmica.",
+    "Bifeteira grill": "Bifeteira grill.",
+    "Balanço 2": "Balanço 2 estágios aço inox 304.",
+    "Balanço 3": "Balanço 3 estágios aço inox 304.",
+    "Balanço 4": "Balanço 4 estágios aço inox 304.",
+    "Kit 6 Espetos": "Kit 6 espetos.",
+    "Regulagem Comum 2": "Regulagem comum 2 estágios aço inox 304.",
+    "Regulagem Comum 3": "Regulagem comum 3 estágios aço inox 304.",
+    "Regulagem Comum 4": "Regulagem comum 4 estágios aço inox 304.",
+    "Regulagem Comum 5": "Regulagem comum 5 estágios aço inox 304.",
+    "Gavetão Inox": "Gavetão inferior chapa galvanizada e aço inox 304.",
+    "Moldura Área de fogo": "Moldura área de fogo aço inox 304.",
+    "Grelha de descanso": "Grelha de descanso.",
+    "KAM800 2 Faces": "Lareira Kaminofen KAM800 DUPLA FACE.",
+}
+
+
 DEFAULT_POSITIONS = {
     "numero": {"x": 450, "y": 760, "size": 10}, "data": {"x": 480, "y": 760, "size": 10},
     "responsavelObra": {"x": 60, "y": 740, "size": 10}, "telefoneResponsavel": {"x": 220, "y": 740, "size": 10},
@@ -123,11 +170,9 @@ class PDFHTMLParser(HTMLParser):
         new_style = self.style_stack[-1].copy()
         if tag in ['b', 'strong']: new_style['bold'] = True
         
-        # *** INÍCIO DA CORREÇÃO ***
         if tag == 'br':
             self.x = self.initial_x
             self.y -= self.wrapped_line_height
-        # *** FIM DA CORREÇÃO ***
             
         attrs_dict = dict(attrs)
         if 'style' in attrs_dict:
@@ -206,7 +251,7 @@ async def api_save_positions(request: Request):
     with open(POSITIONS_FILE, "w", encoding="utf-8") as f: json.dump(data, f, indent=2, ensure_ascii=False)
     return {"ok": True}
 
-def draw_items_on_canvas(c, items_list, positions, page_width, initial_item_index=0):
+def draw_items_on_canvas(c, items_list, positions, page_width, initial_item_index=0, is_production=False):
     x_items = positions.get("itemsStart", {}).get("x", 42)
     y_items = positions.get("itemsStart", {}).get("y", 527)
     line_h = positions.get("lineHeight", 25)
@@ -219,30 +264,39 @@ def draw_items_on_canvas(c, items_list, positions, page_width, initial_item_inde
             break
         is_etapa = item_line.startswith("@@ETAPA_START@@")
         is_image = item_line.startswith("@@IMAGE_START@@")
+
         if is_image:
-            image_data = item_line.replace("@@IMAGE_START@@", "").strip()
-            image_path, title = (image_data.split("|", 1) + ["Foto referência"])[:2]
-            full_image_path = os.path.join(APP_DIR, image_path.lstrip('/'))
-            if os.path.exists(full_image_path):
-                try:
-                    title_size = size - 1
-                    c.setFont("Helvetica-Bold", title_size)
-                    title_width = c.stringWidth(title, "Helvetica-Bold", title_size)
-                    y_cursor -= (title_size * 1.5)
-                    c.drawString((page_width - title_width) / 2, y_cursor, title)
-                    y_cursor -= (line_h * 0.5)
-                    img = Image.open(full_image_path)
-                    aspect = img.height / float(img.width)
-                    display_width = page_width * 0.45
-                    display_height = display_width * aspect
-                    y_cursor -= display_height
-                    c.drawImage(full_image_path, (page_width - display_width) / 2, y_cursor, width=display_width, height=display_height, preserveAspectRatio=True)
-                    y_cursor -= line_h
-                except Exception as e:
-                    print(f"Erro ao adicionar imagem {full_image_path}: {e}")
+            if not is_production:
+                image_data = item_line.replace("@@IMAGE_START@@", "").strip()
+                image_path, title = (image_data.split("|", 1) + ["Foto referência"])[:2]
+                full_image_path = os.path.join(APP_DIR, image_path.lstrip('/'))
+                if os.path.exists(full_image_path):
+                    try:
+                        title_size = size - 1
+                        c.setFont("Helvetica-Bold", title_size)
+                        title_width = c.stringWidth(title, "Helvetica-Bold", title_size)
+                        y_cursor -= (title_size * 1.5)
+                        c.drawString((page_width - title_width) / 2, y_cursor, title)
+                        y_cursor -= (line_h * 0.5)
+                        img = Image.open(full_image_path)
+                        aspect = img.height / float(img.width)
+                        display_width = page_width * 0.45
+                        display_height = display_width * aspect
+                        y_cursor -= display_height
+                        c.drawImage(full_image_path, (page_width - display_width) / 2, y_cursor, width=display_width, height=display_height, preserveAspectRatio=True)
+                        y_cursor -= line_h
+                    except Exception as e:
+                        print(f"Erro ao adicionar imagem {full_image_path}: {e}")
             continue
 
         html_to_parse = item_line.replace("@@ETAPA_START@@", "").strip()
+        
+        if not is_etapa and is_production:
+            item_key_search = re.sub('<[^<]+?>', '', html_to_parse).split('.')[0].strip()
+            found_key = next((key for key, value in ITEM_DEFINITIONS.items() if item_key_search in value), None)
+            if found_key:
+                html_to_parse = ITEM_DEFINITIONS_PRODUCAO.get(found_key, html_to_parse)
+
         prefix_width = 0
         if not is_etapa:
             numbered_item_index += 1
@@ -260,24 +314,15 @@ def draw_items_on_canvas(c, items_list, positions, page_width, initial_item_inde
 
     return numbered_item_index
 
-@app.post("/generate")
-async def generate_pdf(
-    numero: str = Form(""), data: str = Form(""), responsavelObra: str = Form(""),
-    telefoneResponsavel: str = Form(""), cliente: str = Form(""), cpf: str = Form(""),
-    rg: str = Form(""), enderecoObra: str = Form(""), telefone: str = Form(""),
-    arquiteto: str = Form(""), projeto: str = Form(""), items: str = Form("")
+def generate_pdf_content(
+    numero, data_formatada_pdf, responsavelObra, telefoneResponsavel, cliente, cpf,
+    rg, enderecoObra, telefone, arquiteto, projeto, items, is_production=False
 ):
     template_path_p1 = get_template_path()
-    if not template_path_p1: return HTMLResponse("Nenhum template de orçamento disponível.", status_code=400)
+    if not template_path_p1:
+        return None
     
     positions_p1 = load_positions(POSITIONS_FILE, DEFAULT_POSITIONS)
-    data_formatada_pdf = data
-    try: data_formatada_pdf = datetime.strptime(data, '%Y-%m-%d').strftime("%d de %B de %Y").replace(" de 0", " de ")
-    except ValueError: pass
-    
-    def clean(s): return "".join(c for c in s.strip().replace("/", "_").replace("\\", "_") if c.isalnum() or c in (' ', '_', '.'))
-    prefixo_projeto = f"{clean(projeto)} " if clean(projeto) and clean(projeto).upper() not in ("N/A", "NA", "NÃO SE APLICA") else ""
-    filename = f"Orçamento {clean(numero)} {prefixo_projeto}cliente {clean(cliente)}.pdf"
     
     all_pages_items = [page.strip() for page in items.split("@@PAGE_BREAK@@")]
     writer = PdfWriter()
@@ -299,7 +344,7 @@ async def generate_pdf(
     if p_addr := positions_p1.get("enderecoObra"): draw_wrapped_text(c1, enderecoObra, p_addr.get("x", 60), p_addr.get("y", 660), p_addr.get("size", 10), page_width - p_addr.get("x", 60) - 25)
     
     items_list_p1 = [s.strip() for s in all_pages_items[0].splitlines() if s.strip()]
-    last_item_index = draw_items_on_canvas(c1, items_list_p1, positions_p1, page_width, 0)
+    last_item_index = draw_items_on_canvas(c1, items_list_p1, positions_p1, page_width, 0, is_production)
     
     c1.save(); packet_p1.seek(0)
     tpl_page_p1 = tpl_reader_p1.pages[0]; tpl_page_p1.merge_page(PdfReader(packet_p1).pages[0]); writer.add_page(tpl_page_p1)
@@ -320,7 +365,7 @@ async def generate_pdf(
             packet_p_n = io.BytesIO()
             c_n = canvas.Canvas(packet_p_n, pagesize=(page_width_p2, page_height_p2))
             
-            last_item_index = draw_items_on_canvas(c_n, items_list_p_n, positions_p2, page_width_p2, last_item_index)
+            last_item_index = draw_items_on_canvas(c_n, items_list_p_n, positions_p2, page_width_p2, last_item_index, is_production)
             c_n.save(); packet_p_n.seek(0)
             
             overlay_page = PdfReader(packet_p_n).pages[0]
@@ -328,4 +373,54 @@ async def generate_pdf(
             writer.add_page(tpl_page_p_n)
 
     out_bytes = io.BytesIO(); writer.write(out_bytes); out_bytes.seek(0)
-    return StreamingResponse(out_bytes, media_type="application/pdf", headers={"Content-Disposition": f"inline; filename=\"{filename}\""})
+    return out_bytes
+
+@app.post("/generate")
+async def generate_pdf_for_preview(
+    numero: str = Form(""), data: str = Form(""), responsavelObra: str = Form(""),
+    telefoneResponsavel: str = Form(""), cliente: str = Form(""), cpf: str = Form(""),
+    rg: str = Form(""), enderecoObra: str = Form(""), telefone: str = Form(""),
+    arquiteto: str = Form(""), projeto: str = Form(""), items: str = Form("")
+):
+    data_formatada_pdf = data
+    try: data_formatada_pdf = datetime.strptime(data, '%Y-%m-%d').strftime("%d de %B de %Y").replace(" de 0", " de ")
+    except ValueError: pass
+    
+    pdf_cliente_bytes = generate_pdf_content(
+        numero, data_formatada_pdf, responsavelObra, telefoneResponsavel, cliente, cpf,
+        rg, enderecoObra, telefone, arquiteto, projeto, items, is_production=False
+    )
+    
+    if not pdf_cliente_bytes:
+        return HTMLResponse("Nenhum template de orçamento disponível.", status_code=400)
+    
+    return StreamingResponse(pdf_cliente_bytes, media_type="application/pdf")
+
+@app.post("/generate-pdfs")
+async def generate_both_pdfs(
+    numero: str = Form(""), data: str = Form(""), responsavelObra: str = Form(""),
+    telefoneResponsavel: str = Form(""), cliente: str = Form(""), cpf: str = Form(""),
+    rg: str = Form(""), enderecoObra: str = Form(""), telefone: str = Form(""),
+    arquiteto: str = Form(""), projeto: str = Form(""), items: str = Form("")
+):
+    data_formatada_pdf = data
+    try:
+        data_formatada_pdf = datetime.strptime(data, '%Y-%m-%d').strftime("%d de %B de %Y").replace(" de 0", " de ")
+    except ValueError:
+        pass
+    
+    args = (numero, data_formatada_pdf, responsavelObra, telefoneResponsavel, cliente, cpf, rg, enderecoObra, telefone, arquiteto, projeto, items)
+    
+    pdf_cliente_bytes = generate_pdf_content(*args, is_production=False)
+    pdf_producao_bytes = generate_pdf_content(*args, is_production=True)
+    
+    if not pdf_cliente_bytes or not pdf_producao_bytes:
+        return JSONResponse({"error": "Nenhum template de orçamento disponível."}, status_code=400)
+
+    pdf_cliente_b64 = base64.b64encode(pdf_cliente_bytes.getvalue()).decode('utf-8')
+    pdf_producao_b64 = base64.b64encode(pdf_producao_bytes.getvalue()).decode('utf-8')
+
+    return JSONResponse({
+        "cliente": pdf_cliente_b64,
+        "producao": pdf_producao_b64
+    })
