@@ -224,7 +224,8 @@ async def index(request: Request):
     return templates.TemplateResponse("index.html", {
         "request": request, "positions": load_positions(POSITIONS_FILE, DEFAULT_POSITIONS),
         "today": date.today().isoformat(), "template_exists": get_template_path() is not None,
-        "item_definitions": ITEM_DEFINITIONS
+        "item_definitions": ITEM_DEFINITIONS,
+        "item_definitions_producao": ITEM_DEFINITIONS_PRODUCAO
     })
 
 def get_template_path():
@@ -380,28 +381,33 @@ async def generate_pdf_for_preview(
     numero: str = Form(""), data: str = Form(""), responsavelObra: str = Form(""),
     telefoneResponsavel: str = Form(""), cliente: str = Form(""), cpf: str = Form(""),
     rg: str = Form(""), enderecoObra: str = Form(""), telefone: str = Form(""),
-    arquiteto: str = Form(""), projeto: str = Form(""), items: str = Form("")
+    arquiteto: str = Form(""), projeto: str = Form(""), items: str = Form(""),
+    mode: str = Form("cliente")
 ):
     data_formatada_pdf = data
     try: data_formatada_pdf = datetime.strptime(data, '%Y-%m-%d').strftime("%d de %B de %Y").replace(" de 0", " de ")
     except ValueError: pass
     
-    pdf_cliente_bytes = generate_pdf_content(
+    is_production = (mode == "producao")
+    
+    pdf_bytes = generate_pdf_content(
         numero, data_formatada_pdf, responsavelObra, telefoneResponsavel, cliente, cpf,
-        rg, enderecoObra, telefone, arquiteto, projeto, items, is_production=False
+        rg, enderecoObra, telefone, arquiteto, projeto, items, is_production=is_production
     )
     
-    if not pdf_cliente_bytes:
+    if not pdf_bytes:
         return HTMLResponse("Nenhum template de orçamento disponível.", status_code=400)
     
-    return StreamingResponse(pdf_cliente_bytes, media_type="application/pdf")
+    return StreamingResponse(pdf_bytes, media_type="application/pdf")
 
 @app.post("/generate-pdfs")
 async def generate_both_pdfs(
     numero: str = Form(""), data: str = Form(""), responsavelObra: str = Form(""),
     telefoneResponsavel: str = Form(""), cliente: str = Form(""), cpf: str = Form(""),
     rg: str = Form(""), enderecoObra: str = Form(""), telefone: str = Form(""),
-    arquiteto: str = Form(""), projeto: str = Form(""), items: str = Form("")
+    arquiteto: str = Form(""), projeto: str = Form(""),
+    items_cliente: str = Form(""),
+    items_producao: str = Form("")
 ):
     data_formatada_pdf = data
     try:
@@ -409,18 +415,27 @@ async def generate_both_pdfs(
     except ValueError:
         pass
     
-    args = (numero, data_formatada_pdf, responsavelObra, telefoneResponsavel, cliente, cpf, rg, enderecoObra, telefone, arquiteto, projeto, items)
+    # Generate Cliente PDF
+    args_cliente = (numero, data_formatada_pdf, responsavelObra, telefoneResponsavel, cliente, cpf, rg, enderecoObra, telefone, arquiteto, projeto, items_cliente)
+    pdf_cliente_bytes = generate_pdf_content(*args_cliente, is_production=False)
     
-    pdf_cliente_bytes = generate_pdf_content(*args, is_production=False)
-    pdf_producao_bytes = generate_pdf_content(*args, is_production=True)
-    
+    # Generate Producao PDF
+    args_producao = (numero, data_formatada_pdf, responsavelObra, telefoneResponsavel, cliente, cpf, rg, enderecoObra, telefone, arquiteto, projeto, items_producao)
+    pdf_producao_bytes = generate_pdf_content(*args_producao, is_production=True)
+
     if not pdf_cliente_bytes or not pdf_producao_bytes:
         return JSONResponse({"error": "Nenhum template de orçamento disponível."}, status_code=400)
 
     pdf_cliente_b64 = base64.b64encode(pdf_cliente_bytes.getvalue()).decode('utf-8')
     pdf_producao_b64 = base64.b64encode(pdf_producao_bytes.getvalue()).decode('utf-8')
 
+    clean_cliente_name = "".join(c for c in cliente if c.isalnum() or c in (' ')).strip()
+    filename_cliente = f"Orçamento {numero} {clean_cliente_name}.pdf"
+    filename_producao = f"Orçamento {numero} {clean_cliente_name} Produção.pdf"
+
     return JSONResponse({
         "cliente": pdf_cliente_b64,
-        "producao": pdf_producao_b64
+        "producao": pdf_producao_b64,
+        "filename_cliente": filename_cliente,
+        "filename_producao": filename_producao
     })
