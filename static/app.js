@@ -1,16 +1,21 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- Variáveis Globais e Seleção de Elementos ---
     const orcForm = document.getElementById('orc-form');
-    const hiddenItemsInput = document.getElementById('hidden-items-input');
     const previewIframe = document.getElementById('preview');
-    const itemDefinitions = JSON.parse(document.getElementById('items-editor-wrapper').dataset.itemDefinitions || '{}');
-    
+    const wrapper = document.getElementById('items-editor-wrapper');
+    const itemDefinitions = JSON.parse(wrapper.dataset.itemDefinitions || '{}');
+    const itemDefinitionsProducao = JSON.parse(wrapper.dataset.itemDefinitionsProducao || '{}');
+
+    const btnCliente = document.getElementById('orcamento-cliente-btn');
+    const btnProducao = document.getElementById('orcamento-producao-btn');
     const pageTabsContainer = document.getElementById('page-tabs');
-    const itemsEditorWrapper = document.getElementById('items-editor-wrapper');
+    const editorContainer = document.querySelector('#items-editor-wrapper');
     const btnAddPage = document.getElementById('btn-add-page');
-    
+
+    let itemsCliente = { 1: [] };
+    let itemsProducao = { 1: [] };
     let currentPage = 1;
-    let totalPages = 1;
+    let currentMode = 'cliente'; // 'cliente' ou 'producao'
     let previewTimer;
 
     // --- Lógica para Menus Suspensos (Dropdowns) ---
@@ -23,112 +28,175 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.dropdown-menu').forEach(otherMenu => {
                 if (otherMenu !== menu) {
                     otherMenu.classList.add('hidden');
-                    otherMenu.previousElementSibling.querySelector('svg').style.transform = 'rotate(0deg)';
+                    if (otherMenu.previousElementSibling.querySelector('svg')) {
+                       otherMenu.previousElementSibling.querySelector('svg').style.transform = 'rotate(0deg)';
+                    }
                 }
             });
 
             menu.classList.toggle('hidden');
-            arrow.style.transform = menu.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+            if(arrow) arrow.style.transform = menu.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
         });
     });
 
     window.addEventListener('click', () => {
         document.querySelectorAll('.dropdown-menu').forEach(menu => {
             menu.classList.add('hidden');
-            menu.previousElementSibling.querySelector('svg').style.transform = 'rotate(0deg)';
+            if (menu.previousElementSibling.querySelector('svg')) {
+                menu.previousElementSibling.querySelector('svg').style.transform = 'rotate(0deg)';
+            }
         });
     });
+    
+    // --- Funções de Gerenciamento de Orçamento (Modo) ---
+    function switchMode(newMode) {
+        syncDomToData(); // Salva o estado atual do DOM na variável JS
+        currentMode = newMode;
 
-    // --- Funções de Gerenciamento de Página ---
-    function switchPage(targetPage) {
-        currentPage = targetPage;
-        document.querySelectorAll('.page-tab').forEach(tab => {
-            tab.classList.toggle('active', parseInt(tab.dataset.page) === currentPage);
-        });
-        document.querySelectorAll('.items-list-container').forEach(container => {
-            container.classList.toggle('active', parseInt(container.id.split('-').pop()) === currentPage);
-        });
-    }
-
-    function addNewPage() {
-        totalPages++;
-        const newTab = document.createElement('button');
-        newTab.type = 'button';
-        newTab.className = 'page-tab flex items-center';
-        newTab.dataset.page = totalPages;
-        newTab.innerHTML = `Página ${totalPages} <span class="ml-2 text-red-400 hover:text-red-600 delete-page" data-page-to-delete="${totalPages}">&#128465;</span>`;
-        pageTabsContainer.appendChild(newTab);
-
-        const newContainer = document.createElement('div');
-        newContainer.className = 'items-list-container';
-        newContainer.id = `items-list-container-${totalPages}`;
-        newContainer.innerHTML = `<p class="text-sm text-gray-500 italic mt-1 default-text">Nenhum item selecionado.</p>`;
-        itemsEditorWrapper.appendChild(newContainer);
-
-        switchPage(totalPages);
-    }
-
-    function deletePage(pageToDelete) {
-        if (pageToDelete <= 1) return;
-
-        document.querySelector(`.page-tab[data-page="${pageToDelete}"]`).remove();
-        document.getElementById(`items-list-container-${pageToDelete}`).remove();
-
-        if (currentPage === pageToDelete) {
-            switchPage(pageToDelete - 1);
+        if (currentMode === 'cliente') {
+            btnCliente.classList.add('bg-indigo-600', 'text-white');
+            btnCliente.classList.remove('bg-gray-200', 'text-gray-700');
+            btnProducao.classList.add('bg-gray-200', 'text-gray-700');
+            btnProducao.classList.remove('bg-indigo-600', 'text-white');
+        } else {
+            btnProducao.classList.add('bg-indigo-600', 'text-white');
+            btnProducao.classList.remove('bg-gray-200', 'text-gray-700');
+            btnCliente.classList.add('bg-gray-200', 'text-gray-700');
+            btnCliente.classList.remove('bg-indigo-600', 'text-white');
         }
         
-        totalPages--;
-        document.querySelectorAll('.page-tab').forEach((tab, index) => {
-            const newPageNum = index + 1;
-            tab.dataset.page = newPageNum;
-            const textNode = Array.from(tab.childNodes).find(node => node.nodeType === Node.TEXT_NODE);
-            if(textNode) textNode.nodeValue = `Página ${newPageNum}`;
-            const deleteBtn = tab.querySelector('.delete-page');
-            if(deleteBtn) deleteBtn.dataset.pageToDelete = newPageNum;
-        });
-        document.querySelectorAll('.items-list-container').forEach((container, index) => {
-            const newPageNum = index + 1;
-            container.id = `items-list-container-${newPageNum}`;
-        });
-
-        renderSelectedItems();
+        renderEditorFromData();
         updatePreview();
     }
+    
+    // --- Sincronização de DADOS e DOM ---
 
-    // --- Funções de Renderização e Atualização ---
-    function renderSelectedItems() {
-        const allPagesContent = [];
-        document.querySelectorAll('.items-list-container').forEach((container) => {
-            const itemsOnPage = [];
+    function syncDomToData() {
+        const dataTarget = currentMode === 'cliente' ? itemsCliente : itemsProducao;
+        document.querySelectorAll('.items-list-container').forEach(container => {
+            const pageNum = parseInt(container.id.split('-').pop());
+            if (!dataTarget[pageNum]) dataTarget[pageNum] = [];
+            
+            dataTarget[pageNum] = []; // Limpa para reconstruir
             container.querySelectorAll('.selected-item, .selected-image-item').forEach(el => {
-                const itemHtml = getItemHtml(el);
-                if (itemHtml) itemsOnPage.push(itemHtml);
+                dataTarget[pageNum].push({
+                    html: el.querySelector('span[contenteditable="true"]')?.innerHTML || el.innerHTML,
+                    isSeparator: el.classList.contains('stage-separator'),
+                    isImage: el.classList.contains('selected-image-item'),
+                    imagePath: el.dataset.imagePath,
+                    imageTitle: el.dataset.title,
+                    imageName: el.dataset.imageName
+                });
             });
-            allPagesContent.push(itemsOnPage.join('\n'));
-            const defaultText = container.querySelector('.default-text');
-            if (defaultText) defaultText.style.display = (itemsOnPage.length === 0) ? 'block' : 'none';
         });
-        hiddenItemsInput.value = allPagesContent.join('\n@@PAGE_BREAK@@\n');
     }
 
-    function getItemHtml(element) {
-        if (element.classList.contains('selected-image-item')) {
-            return `@@IMAGE_START@@${element.dataset.imagePath}|${element.dataset.title}`;
-        } else {
-            const editableSpan = element.querySelector('span[contenteditable="true"]');
-            if (editableSpan) {
-                let formattedHtml = editableSpan.innerHTML.trim();
-                return element.classList.contains('stage-separator') ? `@@ETAPA_START@@${formattedHtml}` : formattedHtml;
+    function renderEditorFromData() {
+        const dataSource = currentMode === 'cliente' ? itemsCliente : itemsProducao;
+        const pageNumbers = Object.keys(dataSource);
+
+        pageTabsContainer.innerHTML = '';
+        editorContainer.querySelectorAll('.items-list-container').forEach(c => c.remove());
+
+        let maxPage = Math.max(1, ...pageNumbers.map(n => parseInt(n)));
+
+        for(let i = 1; i <= maxPage; i++) {
+            if(!dataSource[i]) dataSource[i] = [];
+            // Cria a Aba (Tab)
+            const newTab = document.createElement('button');
+            newTab.type = 'button';
+            newTab.className = 'page-tab flex items-center';
+            newTab.dataset.page = i;
+            newTab.innerHTML = `Página ${i}`;
+            if (i > 1) {
+                newTab.innerHTML += ` <span class="ml-2 text-red-400 hover:text-red-600 delete-page" data-page-to-delete="${i}">&#128465;</span>`;
+            }
+            pageTabsContainer.appendChild(newTab);
+            
+            // Cria o Container de Itens
+            const newContainer = document.createElement('div');
+            newContainer.className = 'items-list-container';
+            newContainer.id = `items-list-container-${i}`;
+            editorContainer.appendChild(newContainer);
+            
+            if (dataSource[i] && dataSource[i].length > 0) {
+                 dataSource[i].forEach(itemData => {
+                    const el = createDomItem(itemData);
+                    newContainer.appendChild(el);
+                });
+            } else {
+                newContainer.innerHTML = `<p class="text-sm text-gray-500 italic mt-1 default-text">Nenhum item adicionado.</p>`;
             }
         }
-        return null;
+        switchPage(currentPage > maxPage ? maxPage : currentPage);
+    }
+    
+    function createDomItem(itemData) {
+        const div = document.createElement('div');
+        let editableSpan;
+
+        if(itemData.isImage) {
+            div.className = 'selected-image-item flex items-center mb-2 p-2 bg-gray-200 border rounded';
+            div.dataset.imagePath = itemData.imagePath;
+            div.dataset.title = itemData.imageTitle;
+            div.dataset.imageName = itemData.imageName;
+            div.innerHTML = `<span class="flex-grow p-1 italic text-gray-600 text-sm">Img: ${itemData.imageName} (${itemData.imageTitle})</span><button type="button" class="ml-2 text-red-500 hover:text-red-700 font-bold">×</button>`;
+        } else {
+             div.className = itemData.isSeparator 
+                ? 'selected-item stage-separator flex items-center mb-2 p-2 bg-yellow-100 border-yellow-300 rounded font-bold'
+                : 'selected-item flex items-center mb-2 p-2 bg-white border rounded';
+            div.innerHTML = `<span class="flex-grow p-1" contenteditable="true">${itemData.html}</span><button type="button" class="ml-2 text-red-500 hover:text-red-700 font-bold">×</button>`;
+            editableSpan = div.querySelector('span');
+        }
+
+        div.querySelector('button').addEventListener('click', () => {
+            div.remove(); 
+            syncDomToData();
+            updatePreviewDebounced(); 
+        });
+        
+        if(editableSpan) {
+            editableSpan.addEventListener('input', () => { 
+                syncDomToData();
+                updatePreviewDebounced(); 
+            });
+        }
+        
+        return div;
+    }
+
+    function updateHiddenInputs() {
+        syncDomToData(); // Garante que os dados JS estão atualizados com o DOM
+        
+        ['cliente', 'producao'].forEach(mode => {
+            const dataSource = mode === 'cliente' ? itemsCliente : itemsProducao;
+            const input = document.getElementById(`hidden-items-input-${mode}`);
+            const allPagesContent = [];
+
+            Object.keys(dataSource).sort((a, b) => a - b).forEach(pageNum => {
+                const itemsOnPage = (dataSource[pageNum] || []).map(item => {
+                    if (item.isImage) {
+                        return `@@IMAGE_START@@${item.imagePath}|${item.imageTitle}`;
+                    }
+                    let formattedHtml = item.html.trim();
+                    return item.isSeparator ? `@@ETAPA_START@@${formattedHtml}` : formattedHtml;
+                });
+                allPagesContent.push(itemsOnPage.join('\n'));
+            });
+            input.value = allPagesContent.join('\n@@PAGE_BREAK@@\n');
+        });
     }
 
     function updatePreview() {
-        renderSelectedItems();
+        updateHiddenInputs();
         const formData = new FormData(orcForm);
-        // Use a different endpoint for preview generation to avoid confusion
+        formData.append('mode', currentMode);
+        
+        const items = currentMode === 'cliente' 
+            ? formData.get('items_cliente') 
+            : formData.get('items_producao');
+        formData.append('items', items);
+
         fetch('/generate', { method: 'POST', body: formData })
             .then(response => response.ok ? response.blob() : Promise.reject('Erro ao gerar preview.'))
             .then(blob => {
@@ -140,31 +208,123 @@ document.addEventListener('DOMContentLoaded', () => {
                 previewIframe.src = 'about:blank';
             });
     }
-    
+
     function updatePreviewDebounced() {
         clearTimeout(previewTimer);
         previewTimer = setTimeout(updatePreview, 500);
     }
     
-    // --- Funções de Adição de Conteúdo (Itens, Imagens) ---
-    function addItemToActiveDom(element) {
-        document.querySelector(`.items-list-container.active`).appendChild(element);
-        renderSelectedItems();
+    // --- Funções de Gerenciamento de Página ---
+    function switchPage(targetPage) {
+        currentPage = targetPage;
+        document.querySelectorAll('.page-tab').forEach(tab => {
+            tab.classList.toggle('active', parseInt(tab.dataset.page) === currentPage);
+        });
+        document.querySelectorAll('.items-list-container').forEach(container => {
+            container.classList.toggle('active', parseInt(container.id.split('-').pop()) === currentPage);
+        });
+    }
+    
+    function addNewPage() {
+        syncDomToData();
+        const maxPage = Math.max(0, ...Object.keys(itemsCliente).map(n => parseInt(n)));
+        const newPageNum = maxPage + 1;
+        itemsCliente[newPageNum] = [];
+        itemsProducao[newPageNum] = [];
+        currentPage = newPageNum;
+        renderEditorFromData();
         updatePreview();
     }
 
-    function addImageToDom(imageName, imagePath, title) {
-        const newImageDiv = document.createElement('div');
-        newImageDiv.className = 'selected-image-item flex items-center mb-2 p-2 bg-gray-200 border rounded';
-        newImageDiv.dataset.imagePath = imagePath;
-        newImageDiv.dataset.title = title;
-        newImageDiv.innerHTML = `<span class="flex-grow p-1 italic text-gray-600 text-sm">Img: ${imageName} (${title})</span><button type="button" class="ml-2 text-red-500 hover:text-red-700 font-bold">×</button>`;
-        newImageDiv.querySelector('button').addEventListener('click', () => {
-            newImageDiv.remove(); renderSelectedItems(); updatePreview();
-        });
-        addItemToActiveDom(newImageDiv);
+    function deletePage(pageToDelete) {
+        if (pageToDelete <= 1) return;
+        syncDomToData();
+
+        delete itemsCliente[pageToDelete];
+        delete itemsProducao[pageToDelete];
+
+        // Re-indexar páginas
+        const reIndex = (items) => {
+            const newItems = {};
+            let newPage = 1;
+            Object.keys(items).sort((a,b) => a-b).forEach(oldPage => {
+                if(parseInt(oldPage) !== pageToDelete) {
+                    newItems[newPage] = items[oldPage];
+                    newPage++;
+                }
+            });
+            return newItems;
+        };
+
+        itemsCliente = reIndex(itemsCliente);
+        itemsProducao = reIndex(itemsProducao);
+        
+        if (currentPage >= pageToDelete) {
+            currentPage--;
+        }
+
+        renderEditorFromData();
+        updatePreview();
+    }
+    
+    // --- Funções de Adição de Conteúdo ---
+    function addItemToActiveDom(element) {
+        const activeContainer = document.querySelector(`.items-list-container.active`);
+        const defaultText = activeContainer.querySelector('.default-text');
+        if (defaultText) defaultText.style.display = 'none';
+        activeContainer.appendChild(element);
     }
 
+    function addContent(itemDataCliente, itemDataProducao) {
+        syncDomToData();
+
+        // Adiciona aos dados JS
+        itemsCliente[currentPage].push(itemDataCliente);
+        itemsProducao[currentPage].push(itemDataProducao);
+
+        // Renderiza o item correto no DOM baseado no modo atual
+        const domItem = createDomItem(currentMode === 'cliente' ? itemDataCliente : itemDataProducao);
+        addItemToActiveDom(domItem);
+
+        updatePreviewDebounced();
+    }
+
+    window.addItemFromSearch = () => {
+        const searchInput = document.getElementById('item-input-search');
+        const itemCode = searchInput.value.trim();
+        if (!itemCode) return;
+
+        const descCliente = itemDefinitions[itemCode] || itemCode;
+        const descProducao = itemDefinitionsProducao[itemCode] || itemDefinitions[itemCode] || itemCode;
+        
+        addContent(
+            { html: descCliente, isSeparator: false },
+            { html: descProducao, isSeparator: false }
+        );
+        searchInput.value = '';
+    };
+
+    window.addEtapaSeparator = (stageNumber) => {
+        const stageText = { "1": "<b>Etapa 1 Estrutural:</b>", "2": "<b>Etapa 2 Equipamentos:</b>", "3": "" }[stageNumber] || "";
+        addContent(
+            { html: stageText, isSeparator: true },
+            { html: stageText, isSeparator: true }
+        );
+        if(!stageText) {
+             setTimeout(() => document.querySelector('.items-list-container.active').lastChild.querySelector('span').focus(), 0);
+        }
+    };
+    
+    function addImageToDom(imageName, imagePath, title) {
+        const commonData = {
+            isImage: true,
+            imagePath: imagePath,
+            imageTitle: title,
+            imageName: imageName
+        };
+        addContent(commonData, commonData);
+    }
+    
     function uploadAndAddImage(event) {
         const file = event.target.files[0];
         if (!file) return;
@@ -180,7 +340,19 @@ document.addEventListener('DOMContentLoaded', () => {
         event.target.value = '';
     }
 
+    window.formatText = (command, value = null) => {
+        document.execCommand(command, false, value);
+        const activeContainer = document.querySelector(`.items-list-container.active`);
+        if (document.getSelection().anchorNode && activeContainer.contains(document.getSelection().anchorNode.parentElement)) {
+            syncDomToData();
+            updatePreviewDebounced();
+        }
+    };
+    
     // --- Event Listeners ---
+    btnCliente.addEventListener('click', () => switchMode('cliente'));
+    btnProducao.addEventListener('click', () => switchMode('producao'));
+
     pageTabsContainer.addEventListener('click', (e) => {
         const tab = e.target.closest('.page-tab');
         if (tab) {
@@ -190,6 +362,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     deletePage(pageNum);
                 }
             } else {
+                syncDomToData();
                 switchPage(parseInt(tab.dataset.page));
             }
         }
@@ -197,11 +370,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     orcForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        renderSelectedItems();
+        updateHiddenInputs();
         const formData = new FormData(orcForm);
 
-        // Function to open a PDF from a base64 string
-        const openPdf = (base64) => {
+        const downloadPdf = (base64, filename) => {
             const byteCharacters = atob(base64);
             const byteNumbers = new Array(byteCharacters.length);
             for (let i = 0; i < byteCharacters.length; i++) {
@@ -210,15 +382,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const byteArray = new Uint8Array(byteNumbers);
             const file = new Blob([byteArray], { type: 'application/pdf' });
             const fileURL = URL.createObjectURL(file);
-            window.open(fileURL);
+            
+            const link = document.createElement('a');
+            link.href = fileURL;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         };
         
         fetch('/generate-pdfs', { method: 'POST', body: formData })
             .then(response => response.json())
             .then(data => {
                 if (data.cliente && data.producao) {
-                    openPdf(data.cliente);
-                    openPdf(data.producao);
+                    downloadPdf(data.cliente, data.filename_cliente);
+                    downloadPdf(data.producao, data.filename_producao);
                 } else {
                     alert('Erro ao gerar os PDFs.');
                 }
@@ -239,43 +417,6 @@ document.addEventListener('DOMContentLoaded', () => {
         input.addEventListener('input', updatePreviewDebounced);
     });
 
-    // --- Funções Globais para `onclick` ---
-    window.addEtapaSeparator = (stageNumber) => {
-        let stageText = {"1": "<b>Etapa 1 Estrutural:</b>", "2": "<b>Etapa 2 Equipamentos:</b>", "3": ""}[stageNumber] || "";
-        const newItemDiv = document.createElement('div');
-        newItemDiv.className = 'selected-item stage-separator flex items-center mb-2 p-2 bg-yellow-100 border-yellow-300 rounded font-bold';
-        newItemDiv.innerHTML = `<span class="flex-grow p-1" contenteditable="true">${stageText}</span><button type="button" class="ml-2 text-red-500 hover:text-red-700 font-bold">×</button>`;
-        newItemDiv.querySelector('span').addEventListener('input', () => { renderSelectedItems(); updatePreviewDebounced(); });
-        newItemDiv.querySelector('button').addEventListener('click', () => { newItemDiv.remove(); renderSelectedItems(); updatePreview(); });
-        addItemToActiveDom(newItemDiv);
-        if(!stageText) {
-            newItemDiv.querySelector('span').focus();
-        }
-    };
-
-    window.addItemFromSearch = () => {
-        const searchInput = document.getElementById('item-input-search');
-        const itemCode = searchInput.value.trim();
-        if (!itemCode) return;
-        const itemDescription = itemDefinitions[itemCode] || itemCode;
-        const newItemDiv = document.createElement('div');
-        newItemDiv.className = 'selected-item flex items-center mb-2 p-2 bg-white border rounded';
-        newItemDiv.innerHTML = `<span class="flex-grow p-1" contenteditable="true">${itemDescription}</span><button type="button" class="ml-2 text-red-500 hover:text-red-700 font-bold">×</button>`;
-        newItemDiv.querySelector('span').addEventListener('input', () => { renderSelectedItems(); updatePreviewDebounced(); });
-        newItemDiv.querySelector('button').addEventListener('click', () => { newItemDiv.remove(); renderSelectedItems(); updatePreview(); });
-        addItemToActiveDom(newItemDiv);
-        searchInput.value = '';
-    };
-
-    window.formatText = (command, value = null) => {
-        document.execCommand(command, false, value);
-        const activeContainer = document.querySelector(`.items-list-container.active`);
-        if (document.getSelection().anchorNode && activeContainer.contains(document.getSelection().anchorNode)) {
-             renderSelectedItems();
-             updatePreviewDebounced();
-        }
-    };
-    
     // --- Inicialização ---
     updatePreview();
 });
