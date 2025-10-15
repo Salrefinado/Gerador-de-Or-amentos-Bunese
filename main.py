@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, UploadFile, File, Form
+from fastapi import FastAPI, Request, UploadFile, File, Form, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -11,7 +11,7 @@ from datetime import date, datetime
 import locale
 from html.parser import HTMLParser
 from PIL import Image
-
+from database import database, orcamentos
 
 # --- Bloco de configuração inicial ---
 try:
@@ -37,6 +37,15 @@ os.makedirs(STATIC_DIR, exist_ok=True)
 os.makedirs(REFERENCIA_DIR, exist_ok=True)
 
 app = FastAPI()
+
+@app.on_event("startup")
+async def startup():
+    await database.connect()
+
+@app.on_event("shutdown")
+async def shutdown():
+    await database.disconnect()
+
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=os.path.join(APP_DIR, "templates"))
 
@@ -439,3 +448,43 @@ async def generate_both_pdfs(
         "filename_cliente": filename_cliente,
         "filename_producao": filename_producao
     })
+
+@app.post("/orcamentos")
+async def save_orcamento(request: Request):
+    form_data = await request.form()
+    orcamento_data = dict(form_data)
+    
+    query = orcamentos.select().where(orcamentos.c.numero == orcamento_data["numero"])
+    existing_orcamento = await database.fetch_one(query)
+
+    if existing_orcamento:
+        update_query = orcamentos.update().where(orcamentos.c.numero == orcamento_data["numero"]).values(
+            cliente=orcamento_data["cliente"],
+            data_atualizacao=datetime.now().isoformat(),
+            dados=orcamento_data
+        )
+        await database.execute(update_query)
+        return {"status": "updated"}
+    else:
+        insert_query = orcamentos.insert().values(
+            numero=orcamento_data["numero"],
+            cliente=orcamento_data["cliente"],
+            data_atualizacao=datetime.now().isoformat(),
+            dados=orcamento_data
+        )
+        await database.execute(insert_query)
+        return {"status": "created"}
+
+@app.get("/orcamentos")
+async def get_orcamentos():
+    query = orcamentos.select()
+    results = await database.fetch_all(query)
+    return [dict(result) for result in results]
+
+@app.get("/orcamentos/{orcamento_id}")
+async def get_orcamento(orcamento_id: int):
+    query = orcamentos.select().where(orcamentos.c.id == orcamento_id)
+    orcamento = await database.fetch_one(query)
+    if orcamento is None:
+        raise HTTPException(status_code=404, detail="Orçamento não encontrado")
+    return orcamento
