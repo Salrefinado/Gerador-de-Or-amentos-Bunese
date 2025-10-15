@@ -5,6 +5,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const wrapper = document.getElementById('items-editor-wrapper');
     const itemDefinitions = JSON.parse(wrapper.dataset.itemDefinitions || '{}');
     const itemDefinitionsProducao = JSON.parse(wrapper.dataset.itemDefinitionsProducao || '{}');
+    const btnSaveOrcamento = document.getElementById('btn-save-orcamento');
+    const savedOrcamentosList = document.getElementById('saved-orcamentos-list');
 
     const btnCliente = document.getElementById('orcamento-cliente-btn');
     const btnProducao = document.getElementById('orcamento-producao-btn');
@@ -349,9 +351,96 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
+    // --- Funções de Banco de Dados ---
+    function saveOrcamento() {
+        updateHiddenInputs();
+        const formData = new FormData(orcForm);
+
+        fetch('/orcamentos', { method: 'POST', body: formData })
+            .then(response => response.json())
+            .then(data => {
+                alert(`Orçamento ${data.status === 'updated' ? 'atualizado' : 'salvo'} com sucesso!`);
+                loadSavedOrcamentos();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Ocorreu um erro ao salvar o orçamento.');
+            });
+    }
+
+    function loadSavedOrcamentos() {
+        fetch('/orcamentos')
+            .then(response => response.json())
+            .then(data => {
+                savedOrcamentosList.innerHTML = '';
+                data.forEach(orcamento => {
+                    const div = document.createElement('div');
+                    div.className = 'flex justify-between items-center p-2 border rounded';
+                    div.innerHTML = `
+                        <span>${orcamento.numero} - ${orcamento.cliente} (${new Date(orcamento.data_atualizacao).toLocaleDateString()})</span>
+                        <button type="button" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600" onclick="loadOrcamento(${orcamento.id})">Carregar</button>
+                    `;
+                    savedOrcamentosList.appendChild(div);
+                });
+            });
+    }
+
+    window.loadOrcamento = (id) => {
+        fetch(`/orcamentos/${id}`)
+            .then(response => response.json())
+            .then(data => {
+                const orcamentoData = data.dados;
+                for (const key in orcamentoData) {
+                    const input = document.getElementById(key);
+                    if (input) {
+                        input.value = orcamentoData[key];
+                    }
+                }
+                
+                // Carregar items
+                const parseItems = (itemsString) => {
+                    if (!itemsString) return { 1: [] };
+                    const pages = itemsString.split('@@PAGE_BREAK@@');
+                    const itemsByPage = {};
+                    pages.forEach((pageContent, index) => {
+                        const pageNum = index + 1;
+                        itemsByPage[pageNum] = [];
+                        const lines = pageContent.trim().split('\n');
+                        lines.forEach(line => {
+                            if (line.startsWith('@@IMAGE_START@@')) {
+                                const [path, title] = line.replace('@@IMAGE_START@@', '').split('|');
+                                itemsByPage[pageNum].push({
+                                    isImage: true,
+                                    imagePath: path,
+                                    imageTitle: title,
+                                    imageName: path.split('/').pop()
+                                });
+                            } else if (line.startsWith('@@ETAPA_START@@')) {
+                                itemsByPage[pageNum].push({
+                                    html: line.replace('@@ETAPA_START@@', ''),
+                                    isSeparator: true
+                                });
+                            } else if(line) {
+                                itemsByPage[pageNum].push({ html: line, isSeparator: false });
+                            }
+                        });
+                    });
+                    return itemsByPage;
+                };
+
+                itemsCliente = parseItems(orcamentoData.items_cliente || '');
+                itemsProducao = parseItems(orcamentoData.items_producao || '');
+                
+                renderEditorFromData();
+                updatePreview();
+                alert('Orçamento carregado!');
+            });
+    };
+
     // --- Event Listeners ---
     btnCliente.addEventListener('click', () => switchMode('cliente'));
     btnProducao.addEventListener('click', () => switchMode('producao'));
+    btnSaveOrcamento.addEventListener('click', saveOrcamento);
 
     pageTabsContainer.addEventListener('click', (e) => {
         const tab = e.target.closest('.page-tab');
@@ -419,4 +508,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Inicialização ---
     updatePreview();
+    loadSavedOrcamentos();
 });
