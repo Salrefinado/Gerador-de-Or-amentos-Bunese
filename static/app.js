@@ -7,6 +7,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const itemDefinitionsProducao = JSON.parse(wrapper.dataset.itemDefinitionsProducao || '{}');
     const btnSaveOrcamento = document.getElementById('btn-save-orcamento');
     const savedOrcamentosList = document.getElementById('saved-orcamentos-list');
+    const toggleSavedOrcamentosBtn = document.getElementById('toggle-saved-orcamentos');
+    const savedOrcamentosContainer = document.getElementById('saved-orcamentos-container');
+    const searchOrcamentoInput = document.getElementById('search-orcamento');
 
     const btnCliente = document.getElementById('orcamento-cliente-btn');
     const btnProducao = document.getElementById('orcamento-producao-btn');
@@ -375,9 +378,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 savedOrcamentosList.innerHTML = '';
                 data.forEach(orcamento => {
                     const div = document.createElement('div');
-                    div.className = 'flex justify-between items-center p-2 border rounded';
+                    div.className = 'orcamento-item flex justify-between items-center p-2 border rounded';
                     div.innerHTML = `
-                        <span>${orcamento.numero} - ${orcamento.cliente} (${new Date(orcamento.data_atualizacao).toLocaleDateString()})</span>
+                        <span class="orcamento-info">${orcamento.numero} - ${orcamento.cliente} (${new Date(orcamento.data_atualizacao).toLocaleDateString()})</span>
                         <button type="button" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600" onclick="loadOrcamento(${orcamento.id})">Carregar</button>
                     `;
                     savedOrcamentosList.appendChild(div);
@@ -397,7 +400,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
                 
-                // Carregar items
                 const parseItems = (itemsString) => {
                     if (!itemsString) return { 1: [] };
                     const pages = itemsString.split('@@PAGE_BREAK@@');
@@ -434,13 +436,46 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderEditorFromData();
                 updatePreview();
                 alert('Orçamento carregado!');
+
+                // Recolher o accordion
+                const arrow = document.getElementById('accordion-arrow');
+                const content = savedOrcamentosContainer;
+                content.style.maxHeight = null;
+                arrow.style.transform = 'rotate(0deg)';
             });
     };
+
+    function filterOrcamentos() {
+        const filter = searchOrcamentoInput.value.toUpperCase();
+        const items = savedOrcamentosList.getElementsByClassName('orcamento-item');
+        for (let i = 0; i < items.length; i++) {
+            const info = items[i].getElementsByClassName('orcamento-info')[0];
+            const txtValue = info.textContent || info.innerText;
+            if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                items[i].style.display = "";
+            } else {
+                items[i].style.display = "none";
+            }
+        }
+    }
 
     // --- Event Listeners ---
     btnCliente.addEventListener('click', () => switchMode('cliente'));
     btnProducao.addEventListener('click', () => switchMode('producao'));
     btnSaveOrcamento.addEventListener('click', saveOrcamento);
+    searchOrcamentoInput.addEventListener('keyup', filterOrcamentos);
+
+    toggleSavedOrcamentosBtn.addEventListener('click', () => {
+        const arrow = document.getElementById('accordion-arrow');
+        const content = savedOrcamentosContainer;
+        if (content.style.maxHeight) {
+            content.style.maxHeight = null;
+            arrow.style.transform = 'rotate(0deg)';
+        } else {
+            content.style.maxHeight = content.scrollHeight + "px";
+            arrow.style.transform = 'rotate(180deg)';
+        }
+    });
 
     pageTabsContainer.addEventListener('click', (e) => {
         const tab = e.target.closest('.page-tab');
