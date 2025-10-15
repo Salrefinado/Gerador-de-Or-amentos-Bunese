@@ -113,6 +113,10 @@
           </div>
           
           <div class="pt-4">
+            <div class="flex items-center justify-center space-x-2 my-4">
+                <button type="button" id="orcamento-cliente-btn" class="px-4 py-2 rounded-md font-semibold text-white bg-indigo-600 hover:bg-indigo-700">Orçamento Cliente</button>
+                <button type="button" id="orcamento-producao-btn" class="px-4 py-2 rounded-md font-semibold text-gray-700 bg-gray-200 hover:bg-gray-300">Orçamento Produção</button>
+            </div>
             <div class="flex items-center gap-4 my-2 p-2 bg-gray-100 rounded border justify-center">
               <label class="text-base font-semibold">Ferramentas de Edição:</label>
               <button type="button" title="Negrito" class="p-2 rounded-full hover:bg-gray-300 text-xl" onclick="formatText('bold')"><strong>B</strong></button>
@@ -127,14 +131,18 @@
               <button type="button" id="btn-add-page" class="ml-2 text-blue-500 hover:text-blue-700 font-bold text-2xl leading-none" title="Adicionar Nova Página">+</button>
             </div>
             
-            <div id="items-editor-wrapper" class="bg-white p-4 border border-t-0 border-gray-300 rounded-b-md min-h-[150px]" data-item-definitions='{{ item_definitions | tojson }}'>
+            <div id="items-editor-wrapper" 
+                data-item-definitions='{{ item_definitions | tojson }}'
+                data-item-definitions-producao='{{ item_definitions_producao | tojson }}'>
               <div class="items-list-container active" id="items-list-container-1">
                 <p class="text-sm text-gray-500 italic mt-1 default-text">Nenhum item adicionado.</p>
               </div>
             </div>
           </div>
           
-          <input type="hidden" name="items" id="hidden-items-input" value="">
+          <input type="hidden" name="items_cliente" id="hidden-items-input-cliente">
+          <input type="hidden" name="items_producao" id="hidden-items-input-producao">
+
 
           <div class="pt-6">
             <button type="submit" class="w-full bg-indigo-600 text-white font-bold px-4 py-3 rounded-lg hover:bg-indigo-700 transition-all">Gerar Orçamentos</button>
