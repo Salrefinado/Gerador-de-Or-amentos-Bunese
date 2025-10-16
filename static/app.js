@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const toggleSavedOrcamentosBtn = document.getElementById('toggle-saved-orcamentos');
     const savedOrcamentosContainer = document.getElementById('saved-orcamentos-container');
     const searchOrcamentoInput = document.getElementById('search-orcamento');
+    const btnUpdatePreview = document.getElementById('btn-update-preview');
 
     const btnCliente = document.getElementById('orcamento-cliente-btn');
     const btnProducao = document.getElementById('orcamento-producao-btn');
@@ -520,6 +521,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnProducao.addEventListener('click', () => switchMode('producao'));
     btnSaveOrcamento.addEventListener('click', saveOrcamento);
     searchOrcamentoInput.addEventListener('keyup', filterOrcamentos);
+    btnUpdatePreview.addEventListener('click', updatePreview);
 
     toggleSavedOrcamentosBtn.addEventListener('click', () => {
         const arrow = document.getElementById('accordion-arrow');
