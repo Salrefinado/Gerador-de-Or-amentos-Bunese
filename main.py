@@ -488,3 +488,9 @@ async def get_orcamento(orcamento_id: int):
     if orcamento is None:
         raise HTTPException(status_code=404, detail="Orçamento não encontrado")
     return orcamento
+
+@app.delete("/orcamentos/{orcamento_id}")
+async def delete_orcamento(orcamento_id: int):
+    query = orcamentos.delete().where(orcamentos.c.id == orcamento_id)
+    await database.execute(query)
+    return {"status": "deleted"}
