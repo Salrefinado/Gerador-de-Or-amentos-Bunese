@@ -272,16 +272,16 @@ def draw_items_on_canvas(c, items_list, positions, page_width, initial_item_inde
         if y_cursor < 50:
             print("Aviso: Conteúdo excedeu o limite da página.")
             break
-        is_etapa = item_line.startswith("@@ETAPA_START@@")
-        is_image = item_line.startswith("@@IMAGE_START@@")
 
-        if is_image:
+        # Lida com itens de imagem
+        if item_line.startswith("@@IMAGE_START@@"):
+            # Apenas desenha a imagem se NÃO for um orçamento de produção
             if not is_production:
-                image_data = item_line.replace("@@IMAGE_START@@", "").strip()
-                image_path, title = (image_data.split("|", 1) + ["Foto referência"])[:2]
-                full_image_path = os.path.join(APP_DIR, image_path.lstrip('/'))
-                if os.path.exists(full_image_path):
-                    try:
+                try:
+                    image_data = item_line.replace("@@IMAGE_START@@", "").strip()
+                    image_path, title = (image_data.split("|", 1) + ["Foto referência"])[:2]
+                    full_image_path = os.path.join(APP_DIR, image_path.lstrip('/'))
+                    if os.path.exists(full_image_path):
                         title_size = size - 1
                         c.setFont("Helvetica-Bold", title_size)
                         title_width = c.stringWidth(title, "Helvetica-Bold", title_size)
@@ -295,10 +295,13 @@ def draw_items_on_canvas(c, items_list, positions, page_width, initial_item_inde
                         y_cursor -= display_height
                         c.drawImage(full_image_path, (page_width - display_width) / 2, y_cursor, width=display_width, height=display_height, preserveAspectRatio=True)
                         y_cursor -= line_h
-                    except Exception as e:
-                        print(f"Erro ao adicionar imagem {full_image_path}: {e}")
+                except Exception as e:
+                    print(f"Erro ao adicionar imagem {full_image_path}: {e}")
+            # Pula para o próximo item da lista após tratar a imagem
             continue
 
+        # Lida com itens de texto
+        is_etapa = item_line.startswith("@@ETAPA_START@@")
         html_to_parse = item_line.replace("@@ETAPA_START@@", "").strip()
         
         if not is_etapa and is_production:
