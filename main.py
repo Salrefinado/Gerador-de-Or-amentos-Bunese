@@ -231,18 +231,18 @@ def draw_wrapped_text(canvas, text, x, y, size, max_width):
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     # Lógica para obter o próximo número de orçamento
-    query = orcamentos.select().with_only_columns([orcamentos.c.numero])
+    query = orcamentos.select().with_only_columns(orcamentos.c.numero)
     all_numeros_records = await database.fetch_all(query)
     
     max_numero = 0
     if all_numeros_records:
         for record in all_numeros_records:
             try:
-                # O registro pode ser um objeto RowProxy, acesse pelo índice
-                numero_val = int(record[0])
+                # O registro pode ser um objeto RowProxy, acesse pelo nome da coluna
+                numero_val = int(record.numero)
                 if numero_val > max_numero:
                     max_numero = numero_val
-            except (ValueError, TypeError, IndexError):
+            except (ValueError, TypeError, AttributeError):
                 # Ignora valores que não são números inteiros ou registros malformados
                 continue
     
