@@ -8,4 +8,5 @@ databases[sqlite]
 sqlalchemy
 pydantic
 Pillow
+psycopg2-binary
 
