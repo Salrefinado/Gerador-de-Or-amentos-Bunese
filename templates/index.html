@@ -17,13 +17,13 @@
       box-shadow: 0 0 0 1px #a0aec0;
     }
     .page-tab {
-        @apply px-4 py-2 text-sm font-medium rounded-t-lg border transition-colors duration-200;
+        @apply px-4 py-2 text-sm font-medium rounded-t-lg border-t border-l border-r transition-colors duration-200;
     }
     .page-tab.active {
-        @apply bg-white text-gray-800 border-gray-300 border-b-white -mb-px;
+        @apply bg-white text-indigo-600 border-indigo-500 border-b-white -mb-px shadow-sm;
     }
     .page-tab:not(.active) {
-        @apply text-gray-500 border-gray-200 bg-gray-50 hover:bg-gray-100 hover:text-gray-700;
+        @apply text-gray-500 border-gray-300 bg-gray-50 hover:bg-gray-100 hover:text-gray-700;
     }
 
     .items-list-container { display: none; }
@@ -170,8 +170,11 @@
         </form>
       </div>
 
-      <div class="lg:col-span-3 bg-white rounded-lg shadow-md overflow-hidden">
-        <iframe id="preview" src="about:blank" class="w-full h-full" title="Preview"></iframe>
+      <div class="lg:col-span-3 bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+        <div class="text-center py-2">
+            <button type="button" id="btn-update-preview" class="bg-gray-800 text-white font-semibold px-6 py-2 rounded-md hover:bg-gray-900 transition-all">Atualizar</button>
+        </div>
+        <iframe id="preview" src="about:blank" class="w-full h-full border-t" title="Preview"></iframe>
       </div>
 
     </div>
