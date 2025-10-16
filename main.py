@@ -230,11 +230,30 @@ def draw_wrapped_text(canvas, text, x, y, size, max_width):
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
+    # Lógica para obter o próximo número de orçamento
+    query = orcamentos.select().with_only_columns([orcamentos.c.numero])
+    all_numeros_records = await database.fetch_all(query)
+    
+    max_numero = 0
+    if all_numeros_records:
+        for record in all_numeros_records:
+            try:
+                # O registro pode ser um objeto RowProxy, acesse pelo índice
+                numero_val = int(record[0])
+                if numero_val > max_numero:
+                    max_numero = numero_val
+            except (ValueError, TypeError, IndexError):
+                # Ignora valores que não são números inteiros ou registros malformados
+                continue
+    
+    proximo_numero = max_numero + 1
+
     return templates.TemplateResponse("index.html", {
         "request": request, "positions": load_positions(POSITIONS_FILE, DEFAULT_POSITIONS),
         "today": date.today().isoformat(), "template_exists": get_template_path() is not None,
         "item_definitions": ITEM_DEFINITIONS,
-        "item_definitions_producao": ITEM_DEFINITIONS_PRODUCAO
+        "item_definitions_producao": ITEM_DEFINITIONS_PRODUCAO,
+        "proximo_numero": proximo_numero
     })
 
 def get_template_path():
