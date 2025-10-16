@@ -1,8 +1,9 @@
+# VERSÃO CORRETA
 import databases
 import sqlalchemy
 import os
 
-DATABASE_URL = os.getenv("DATABASE_URL=postgresql://orcamentos_db_rbu2_user:kyJTDIF17H4E6hac3bQ57d5r6Xa6Uw5r@dpg-d3ofpq6r433s73a2eag0-a/orcamentos_db_rbu2")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./orcamentos.db")
 
 database = databases.Database(DATABASE_URL)
 metadata = sqlalchemy.MetaData()
@@ -17,7 +18,6 @@ orcamentos = sqlalchemy.Table(
     sqlalchemy.Column("dados", sqlalchemy.JSON),
 )
 
-# A linha 'connect_args' foi removida daqui
 engine = sqlalchemy.create_engine(
     DATABASE_URL
 )
