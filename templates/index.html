@@ -16,16 +16,6 @@
       outline: 1px solid #a0aec0;
       box-shadow: 0 0 0 1px #a0aec0;
     }
-    .page-tab {
-        @apply px-4 py-2 text-sm font-medium rounded-t-lg border-t border-l border-r transition-colors duration-200;
-    }
-    .page-tab.active {
-        @apply bg-white text-indigo-600 border-indigo-500 border-b-white -mb-px shadow-sm;
-    }
-    .page-tab:not(.active) {
-        @apply text-gray-500 border-gray-300 bg-gray-50 hover:bg-gray-100 hover:text-gray-700;
-    }
-
     .items-list-container { display: none; }
     .items-list-container.active { display: block; }
     .dropdown-menu {
@@ -142,11 +132,12 @@
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor"><path d="M15.243 4.524a2.25 2.25 0 00-3.182 0l-6.75 6.75a2.25 2.25 0 000 3.182l3.182 3.182a2.25 2.25 0 003.182 0l6.75-6.75a2.25 2.25 0 000-3.182l-3.182-3.182zM6.621 12.121l6.75-6.75a.75.75 0 011.06 0l3.182 3.182a.75.75 0 010 1.06l-6.75 6.75a.75.75 0 01-1.06 0L6.62 13.182a.75.75 0 010-1.061z" /><path d="M4.125 18.375a.75.75 0 000 1.06l2.122 2.121a.75.75 0 001.06 0l-3.182-3.182a.75.75 0 00-1.06 0z" /></svg>
               </button>
             </div>
-            <div class="border-b border-gray-300 flex items-center">
-              <nav id="page-tabs" class="flex-grow">
-                  <button type="button" class="page-tab active" data-page="1">Página 1</button>
-              </nav>
-              <button type="button" id="btn-add-page" class="ml-2 text-blue-500 hover:text-blue-700 font-bold text-2xl leading-none" title="Adicionar Nova Página">+</button>
+            <div class="border rounded-md p-2">
+              <div class="flex items-center justify-center space-x-2" id="page-tabs">
+                </div>
+              <button type="button" id="btn-add-page" class="mt-2 w-full bg-gray-200 text-gray-700 font-semibold px-4 py-2 rounded-md hover:bg-gray-300 transition-all text-center flex justify-center items-center">
+                <span class="text-xl leading-none mr-2">+</span> Adicionar Nova Página
+              </button>
             </div>
             
             <div id="items-editor-wrapper" 
