@@ -108,18 +108,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
         for(let i = 1; i <= maxPage; i++) {
             if(!dataSource[i]) dataSource[i] = [];
-            // Cria a Aba (Tab)
+            
             const newTab = document.createElement('button');
             newTab.type = 'button';
-            newTab.className = 'page-tab flex items-center';
+            newTab.className = 'page-tab flex items-center px-4 py-2 rounded-md font-semibold'; // Estilo base do botão
             newTab.dataset.page = i;
-            newTab.innerHTML = `Página ${i}`;
+
+            const tabText = document.createElement('span');
+            tabText.textContent = `Página ${i}`;
+            newTab.appendChild(tabText);
+
             if (i > 1) {
-                newTab.innerHTML += ` <span class="ml-2 text-red-400 hover:text-red-600 delete-page" data-page-to-delete="${i}">&#128465;</span>`;
+                const deleteBtn = document.createElement('span');
+                deleteBtn.className = 'ml-2 text-red-400 hover:text-red-600 delete-page';
+                deleteBtn.innerHTML = '&#128465;';
+                deleteBtn.dataset.pageToDelete = i;
+                newTab.appendChild(deleteBtn);
             }
             pageTabsContainer.appendChild(newTab);
             
-            // Cria o Container de Itens
             const newContainer = document.createElement('div');
             newContainer.className = 'items-list-container';
             newContainer.id = `items-list-container-${i}`;
@@ -224,7 +231,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function switchPage(targetPage) {
         currentPage = targetPage;
         document.querySelectorAll('.page-tab').forEach(tab => {
-            tab.classList.toggle('active', parseInt(tab.dataset.page) === currentPage);
+            const isTarget = parseInt(tab.dataset.page) === currentPage;
+            tab.classList.toggle('bg-indigo-600', isTarget);
+            tab.classList.toggle('text-white', isTarget);
+            tab.classList.toggle('bg-gray-200', !isTarget);
+            tab.classList.toggle('text-gray-700', !isTarget);
+            tab.classList.toggle('hover:bg-gray-300', !isTarget);
         });
         document.querySelectorAll('.items-list-container').forEach(container => {
             container.classList.toggle('active', parseInt(container.id.split('-').pop()) === currentPage);
@@ -234,6 +246,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function addNewPage() {
         syncDomToData();
         const maxPage = Math.max(0, ...Object.keys(itemsCliente).map(n => parseInt(n)));
+        if(maxPage >= 3) {
+            alert("O número máximo de páginas é 3.");
+            return;
+        }
         const newPageNum = maxPage + 1;
         itemsCliente[newPageNum] = [];
         itemsProducao[newPageNum] = [];
@@ -276,6 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Funções de Adição de Conteúdo ---
     function addItemToActiveDom(element) {
         const activeContainer = document.querySelector(`.items-list-container.active`);
+        if(!activeContainer) return;
         const defaultText = activeContainer.querySelector('.default-text');
         if (defaultText) defaultText.style.display = 'none';
         activeContainer.appendChild(element);
@@ -284,11 +301,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function addContent(itemDataCliente, itemDataProducao) {
         syncDomToData();
 
-        // Adiciona aos dados JS
+        if (!itemsCliente[currentPage]) itemsCliente[currentPage] = [];
+        if (!itemsProducao[currentPage]) itemsProducao[currentPage] = [];
+
         itemsCliente[currentPage].push(itemDataCliente);
         itemsProducao[currentPage].push(itemDataProducao);
 
-        // Renderiza o item correto no DOM baseado no modo atual
         const domItem = createDomItem(currentMode === 'cliente' ? itemDataCliente : itemDataProducao);
         addItemToActiveDom(domItem);
 
@@ -600,6 +618,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Inicialização ---
+    renderEditorFromData(); // Renderiza o estado inicial
     updatePreview();
     loadSavedOrcamentos();
 });
