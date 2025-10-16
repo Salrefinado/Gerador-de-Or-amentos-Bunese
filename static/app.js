@@ -381,7 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     div.className = 'orcamento-item flex justify-between items-center p-2 border rounded';
                     div.innerHTML = `
                         <span class="orcamento-info">${orcamento.numero} - ${orcamento.cliente} (${new Date(orcamento.data_atualizacao).toLocaleDateString()})</span>
-                        <div>
+                        <div class="flex items-center">
                             <button type="button" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600" onclick="loadOrcamento(${orcamento.id})">Carregar</button>
                             <button type="button" class="text-red-500 hover:text-red-700 ml-2" onclick="showDeleteConfirmation(${orcamento.id})">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
