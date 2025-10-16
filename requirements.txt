@@ -9,4 +9,5 @@ sqlalchemy
 pydantic
 Pillow
 psycopg2-binary
+asyncpg
 
