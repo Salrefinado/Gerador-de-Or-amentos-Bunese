@@ -178,11 +178,11 @@ class PDFHTMLParser(HTMLParser):
     def handle_starttag(self, tag, attrs):
         new_style = self.style_stack[-1].copy()
         if tag in ['b', 'strong']: new_style['bold'] = True
-
+        
         if tag == 'br':
             self.x = self.initial_x
             self.y -= self.wrapped_line_height
-
+            
         attrs_dict = dict(attrs)
         if 'style' in attrs_dict:
             style_str = attrs_dict['style'].replace(' ', '').lower()
@@ -231,25 +231,21 @@ def draw_wrapped_text(canvas, text, x, y, size, max_width):
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     # Lógica para obter o próximo número de orçamento
-    query = orcamentos.select().with_only_columns([orcamentos.c.numero])
     query = orcamentos.select().with_only_columns(orcamentos.c.numero)
     all_numeros_records = await database.fetch_all(query)
-
+    
     max_numero = 0
     if all_numeros_records:
         for record in all_numeros_records:
             try:
-                # O registro pode ser um objeto RowProxy, acesse pelo índice
-                numero_val = int(record[0])
                 # O registro pode ser um objeto RowProxy, acesse pelo nome da coluna
                 numero_val = int(record.numero)
                 if numero_val > max_numero:
                     max_numero = numero_val
-            except (ValueError, TypeError, IndexError):
             except (ValueError, TypeError, AttributeError):
                 # Ignora valores que não são números inteiros ou registros malformados
                 continue
-
+    
     proximo_numero = max_numero + 1
 
     return templates.TemplateResponse("index.html", {
@@ -326,7 +322,7 @@ def draw_items_on_canvas(c, items_list, positions, page_width, initial_item_inde
         # Lida com itens de texto
         is_etapa = item_line.startswith("@@ETAPA_START@@")
         html_to_parse = item_line.replace("@@ETAPA_START@@", "").strip()
-
+        
         if not is_etapa and is_production:
             item_key_search = re.sub('<[^<]+?>', '', html_to_parse).split('.')[0].strip()
             found_key = next((key for key, value in ITEM_DEFINITIONS.items() if item_key_search in value), None)
@@ -340,7 +336,7 @@ def draw_items_on_canvas(c, items_list, positions, page_width, initial_item_inde
             c.setFont("Helvetica", size)
             c.drawString(x_items, y_cursor, letter_prefix)
             prefix_width = c.stringWidth(letter_prefix, "Helvetica", size)
-
+            
         text_x = x_items + prefix_width
         max_x_items = page_width - x_items - 5
         parser = PDFHTMLParser(c, text_x, y_cursor, size, line_h, max_x_items, is_etapa=is_etapa)
@@ -357,9 +353,9 @@ def generate_pdf_content(
     template_path_p1 = get_template_path()
     if not template_path_p1:
         return None
-
+    
     positions_p1 = load_positions(POSITIONS_FILE, DEFAULT_POSITIONS)
-
+    
     all_pages_items = [page.strip() for page in items.split("@@PAGE_BREAK@@")]
     writer = PdfWriter()
 
@@ -378,10 +374,10 @@ def generate_pdf_content(
     draw_text_at("cliente", cliente); draw_text_at("cpf", cpf); draw_text_at("rg", rg); draw_text_at("telefone", telefone)
     draw_text_at("arquiteto", arquiteto or "N/A"); draw_text_at("projeto", projeto or "N/A")
     if p_addr := positions_p1.get("enderecoObra"): draw_wrapped_text(c1, enderecoObra, p_addr.get("x", 60), p_addr.get("y", 660), p_addr.get("size", 10), page_width - p_addr.get("x", 60) - 25)
-
+    
     items_list_p1 = [s.strip() for s in all_pages_items[0].splitlines() if s.strip()]
     last_item_index = draw_items_on_canvas(c1, items_list_p1, positions_p1, page_width, 0, is_production)
-
+    
     c1.save(); packet_p1.seek(0)
     tpl_page_p1 = tpl_reader_p1.pages[0]; tpl_page_p1.merge_page(PdfReader(packet_p1).pages[0]); writer.add_page(tpl_page_p1)
     for i in range(1, len(tpl_reader_p1.pages)): writer.add_page(tpl_reader_p1.pages[i])
@@ -389,7 +385,7 @@ def generate_pdf_content(
     # --- Páginas Adicionais (2, 3, 4, etc.) ---
     if len(all_pages_items) > 1 and os.path.exists(TEMPLATE_PATH_PAGE2):
         positions_p2 = load_positions(POSITIONS_FILE_PAGE2, DEFAULT_POSITIONS_PAGE2)
-
+        
         for page_items_str in all_pages_items[1:]:
             items_list_p_n = [s.strip() for s in page_items_str.splitlines() if s.strip()]
             if not items_list_p_n: continue
@@ -400,10 +396,10 @@ def generate_pdf_content(
 
             packet_p_n = io.BytesIO()
             c_n = canvas.Canvas(packet_p_n, pagesize=(page_width_p2, page_height_p2))
-
+            
             last_item_index = draw_items_on_canvas(c_n, items_list_p_n, positions_p2, page_width_p2, last_item_index, is_production)
             c_n.save(); packet_p_n.seek(0)
-
+            
             overlay_page = PdfReader(packet_p_n).pages[0]
             tpl_page_p_n.merge_page(overlay_page)
             writer.add_page(tpl_page_p_n)
@@ -422,17 +418,17 @@ async def generate_pdf_for_preview(
     data_formatada_pdf = data
     try: data_formatada_pdf = datetime.strptime(data, '%Y-%m-%d').strftime("%d de %B de %Y").replace(" de 0", " de ")
     except ValueError: pass
-
+    
     is_production = (mode == "producao")
-
+    
     pdf_bytes = generate_pdf_content(
         numero, data_formatada_pdf, responsavelObra, telefoneResponsavel, cliente, cpf,
         rg, enderecoObra, telefone, arquiteto, projeto, items, is_production=is_production
     )
-
+    
     if not pdf_bytes:
         return HTMLResponse("Nenhum template de orçamento disponível.", status_code=400)
-
+    
     return StreamingResponse(pdf_bytes, media_type="application/pdf")
 
 @app.post("/generate-pdfs")
@@ -449,11 +445,11 @@ async def generate_both_pdfs(
         data_formatada_pdf = datetime.strptime(data, '%Y-%m-%d').strftime("%d de %B de %Y").replace(" de 0", " de ")
     except ValueError:
         pass
-
+    
     # Generate Cliente PDF
     args_cliente = (numero, data_formatada_pdf, responsavelObra, telefoneResponsavel, cliente, cpf, rg, enderecoObra, telefone, arquiteto, projeto, items_cliente)
     pdf_cliente_bytes = generate_pdf_content(*args_cliente, is_production=False)
-
+    
     # Generate Producao PDF
     args_producao = (numero, data_formatada_pdf, responsavelObra, telefoneResponsavel, cliente, cpf, rg, enderecoObra, telefone, arquiteto, projeto, items_producao)
     pdf_producao_bytes = generate_pdf_content(*args_producao, is_production=True)
@@ -479,7 +475,7 @@ async def generate_both_pdfs(
 async def save_orcamento(request: Request):
     form_data = await request.form()
     orcamento_data = dict(form_data)
-
+    
     query = orcamentos.select().where(orcamentos.c.numero == orcamento_data["numero"])
     existing_orcamento = await database.fetch_one(query)
 
